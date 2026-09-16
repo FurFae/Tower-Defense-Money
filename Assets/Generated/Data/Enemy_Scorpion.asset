@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6df577a2a505cc4b8b4159d4e91fddc, type: 3}
+  m_Name: Enemy_Scorpion
+  m_EditorClassIdentifier: Assembly-CSharp::TowerDefense.EnemyData
+  displayName: Scorpion
+  maxHealth: 45
+  moveSpeed: 1.8
+  currencyReward: 8
+  damageToBase: 1
+  sprite: {fileID: -4530670122045351285, guid: b2c6f9beee207fb4b95a4a17830d76ee, type: 3}
