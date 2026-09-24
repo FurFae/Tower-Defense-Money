@@ -39,6 +39,15 @@ TagManager:
   - 
   - 
   m_SortingLayers:
+  - name: Water
+    uniqueID: 2009809123
+    locked: 0
+  - name: Grass
+    uniqueID: 1218356057
+    locked: 0
+  - name: Road
+    uniqueID: 656953467
+    locked: 0
   - name: Default
     uniqueID: 0
     locked: 0

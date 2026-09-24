@@ -18,6 +18,6 @@ MonoBehaviour:
   range: 3.5
   fireRate: 1.5
   projectileSpeed: 6
-  baseSprite: {fileID: -4990159116027673565, guid: 78b81f679aa1b8741b8a389de1c4468c, type: 3}
+  baseSprite: {fileID: -3232514380413221358, guid: 57e343fe95093cdc61735bd082c4f6eb, type: 3}
   weaponSprite: {fileID: -7175008346103436993, guid: c7f52b0be54ece149a9ded21770a0a07, type: 3}
   projectilePrefab: {fileID: 7231753245129703774, guid: 96d61740cfde28043bf3a5641ba0ae34, type: 3}
