@@ -50,23 +50,23 @@ namespace TowerDefense
 
         private void UpdateCurrency(int value)
         {
-            if (currencyText != null) currencyText.text = $"Gold: {value}";
+            if (currencyText != null) currencyText.text = $"Мана: {value}";
         }
 
         private void UpdateLives(int value)
         {
-            if (livesText != null) livesText.text = $"Lives: {value}";
+            if (livesText != null) livesText.text = $"Жизни: {value}";
         }
 
         private void UpdateWave(int current, int total)
         {
-            if (waveText != null) waveText.text = $"Wave: {current}/{total}";
+            if (waveText != null) waveText.text = $"Волна: {current}/{total}";
         }
 
         private void HandleGameEnded(bool won)
         {
             if (gameOverPanel != null) gameOverPanel.SetActive(true);
-            if (gameOverText != null) gameOverText.text = won ? "Victory!" : "Defeat";
+            if (gameOverText != null) gameOverText.text = won ? "Победа!" : "Поражение";
         }
 
         public void OnRestartClicked() => gameManager?.RestartLevel();

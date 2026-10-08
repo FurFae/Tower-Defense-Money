@@ -2,9 +2,8 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!78 &1
 TagManager:
-  serializedVersion: 3
-  tags:
-  - Waypoint
+  serializedVersion: 2
+  tags: []
   layers:
   - Default
   - TransparentFX
@@ -39,18 +38,6 @@ TagManager:
   - 
   - 
   m_SortingLayers:
-  - name: Water
-    uniqueID: 2009809123
-    locked: 0
-  - name: Grass
-    uniqueID: 1218356057
-    locked: 0
-  - name: Road
-    uniqueID: 656953467
-    locked: 0
   - name: Default
     uniqueID: 0
     locked: 0
-  m_RenderingLayers:
-  - Default
-  m_MigratedRenderPipelines: []

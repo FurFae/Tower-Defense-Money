@@ -14,7 +14,13 @@ namespace TowerDefense
         private void Start()
         {
             if (towerData == null) return;
-            if (label != null) label.text = $"{towerData.displayName}\n{towerData.cost}g";
+            // Towers the player has not collected yet cannot be built.
+            if (!MetaProgress.IsUnlocked(towerData.name))
+            {
+                gameObject.SetActive(false);
+                return;
+            }
+            if (label != null) label.text = $"{towerData.displayName}\n{towerData.cost} маны";
             if (icon != null) icon.sprite = towerData.baseSprite;
             GetComponent<Button>().onClick.AddListener(OnClick);
         }

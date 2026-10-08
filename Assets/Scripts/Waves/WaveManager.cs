@@ -64,6 +64,8 @@ namespace TowerDefense
                     yield return null;
 
                 WaveInProgress = false;
+                if (GameManager.Instance == null || !GameManager.Instance.IsGameOver)
+                    RetentionSystem.Report(RetentionStat.WavesCleared);
             }
 
             OnAllWavesCleared?.Invoke();

@@ -10,11 +10,13 @@ namespace TowerDefense
         [SerializeField] private Transform firePoint;
 
         private TowerData data;
+        private float damage;
         private float cooldown;
 
         public void Initialize(TowerData towerData)
         {
             data = towerData;
+            damage = data.damage * MetaProgress.DamageMultiplier(data.name);
             if (baseRenderer != null) baseRenderer.sprite = data.baseSprite;
             if (weaponRenderer != null) weaponRenderer.sprite = data.weaponSprite;
             cooldown = 0f;
@@ -71,7 +73,7 @@ namespace TowerDefense
             GameObject go = Instantiate(data.projectilePrefab, spawnPos, Quaternion.identity);
             Projectile projectile = go.GetComponent<Projectile>();
             if (projectile != null)
-                projectile.Initialize(target, data.damage, data.projectileSpeed);
+                projectile.Initialize(target, damage,data.projectileSpeed);
         }
 
         private void OnDrawGizmosSelected()

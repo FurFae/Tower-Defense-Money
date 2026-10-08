@@ -42,6 +42,7 @@ namespace TowerDefense
             placedTower.Initialize(data);
             IsOccupied = true;
             if (indicator != null) indicator.enabled = false;
+            RetentionSystem.Report(RetentionStat.TowersBuilt);
             return true;
         }
     }

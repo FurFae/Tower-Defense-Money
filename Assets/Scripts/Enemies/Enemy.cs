@@ -92,6 +92,7 @@ namespace TowerDefense
         {
             if (GameManager.Instance != null)
                 GameManager.Instance.AddCurrency(Data.currencyReward);
+            RetentionSystem.Report(RetentionStat.Kills);
             OnDeath?.Invoke(this);
             Destroy(gameObject);
         }

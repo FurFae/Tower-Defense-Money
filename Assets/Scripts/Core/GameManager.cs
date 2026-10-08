@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using YG;
 
 namespace TowerDefense
 {
@@ -10,10 +11,14 @@ namespace TowerDefense
 
         [SerializeField] private int startingCurrency = 150;
         [SerializeField] private int startingLives = 20;
+        // Position of this level in the campaign, starting at 1.
+        [SerializeField] private int levelNumber = 1;
 
         public int Currency { get; private set; }
         public int Lives { get; private set; }
         public bool IsGameOver { get; private set; }
+
+        private int maxLives;
 
         public event Action<int> OnCurrencyChanged;
         public event Action<int> OnLivesChanged;
@@ -31,10 +36,18 @@ namespace TowerDefense
 
         private void Start()
         {
-            Currency = startingCurrency;
-            Lives = startingLives;
+            Currency = startingCurrency + MetaProgress.ManaPerLevel * MetaProgress.GetLevel(MetaProgress.BaseManaId);
+            maxLives = startingLives + MetaProgress.GetLevel(MetaProgress.BaseLivesId);
+            Lives = maxLives;
             OnCurrencyChanged?.Invoke(Currency);
             OnLivesChanged?.Invoke(Lives);
+            YG2.GameplayStart();
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this)
+                YG2.GameplayStop();
         }
 
         public bool TrySpend(int amount)
@@ -65,6 +78,14 @@ namespace TowerDefense
         {
             if (IsGameOver) return;
             IsGameOver = true;
+            YG2.GameplayStop();
+            if (won)
+            {
+                MetaProgress.CompleteLevel(levelNumber, Lives, maxLives);
+                RetentionSystem.Report(RetentionStat.Wins);
+                if (Lives >= maxLives)
+                    RetentionSystem.Report(RetentionStat.FlawlessWins);
+            }
             OnGameEnded?.Invoke(won);
         }
 
