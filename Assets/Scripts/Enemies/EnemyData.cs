@@ -11,5 +11,6 @@ namespace TowerDefense
         public int currencyReward = 5;
         public int damageToBase = 1;
         public Sprite sprite;
+        public RuntimeAnimatorController animatorController;
     }
 }

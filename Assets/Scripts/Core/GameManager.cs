@@ -11,18 +11,33 @@ namespace TowerDefense
 
         [SerializeField] private int startingCurrency = 150;
         [SerializeField] private int startingLives = 20;
-        // Position of this level in the campaign, starting at 1.
+        // Level played when the scene is started directly in the Editor (see Levels).
         [SerializeField] private int levelNumber = 1;
 
         public int Currency { get; private set; }
         public int Lives { get; private set; }
         public bool IsGameOver { get; private set; }
+        public bool IsPaused { get; private set; }
+        public LevelDefinition Level => Levels.Current;
+        public int MaxLives => maxLives;
+
+        // Castle repair: +1 life for mana, pricier each time, a few times per level.
+        public const int MaxRepairs = 5;
+        private const int RepairBaseCost = 40;
+        private const int RepairCostStep = 20;
+        public int RepairsUsed { get; private set; }
+        public int RepairCost => RepairBaseCost + RepairCostStep * RepairsUsed;
+        public bool CanRepair => !IsGameOver && !IsPaused && Lives < maxLives && RepairsUsed < MaxRepairs
+            && Currency >= RepairCost;
 
         private int maxLives;
+        // Flawless means the castle was never hit, repairs or not.
+        private bool castleDamaged;
 
         public event Action<int> OnCurrencyChanged;
         public event Action<int> OnLivesChanged;
         public event Action<bool> OnGameEnded;
+        public event Action<bool> OnPauseChanged;
 
         private void Awake()
         {
@@ -32,10 +47,15 @@ namespace TowerDefense
                 return;
             }
             Instance = this;
+            Levels.EnsureCurrent(levelNumber);
         }
 
         private void Start()
         {
+            Camera cam = Camera.main;
+            if (cam != null && cam.GetComponent<LevelCamera>() == null)
+                cam.gameObject.AddComponent<LevelCamera>();
+
             Currency = startingCurrency + MetaProgress.ManaPerLevel * MetaProgress.GetLevel(MetaProgress.BaseManaId);
             maxLives = startingLives + MetaProgress.GetLevel(MetaProgress.BaseLivesId);
             Lives = maxLives;
@@ -47,7 +67,20 @@ namespace TowerDefense
         private void OnDestroy()
         {
             if (Instance == this)
+            {
+                Time.timeScale = 1f;
                 YG2.GameplayStop();
+            }
+        }
+
+        public void SetPaused(bool paused)
+        {
+            if (IsGameOver || paused == IsPaused) return;
+            IsPaused = paused;
+            Time.timeScale = paused ? 0f : 1f;
+            if (paused) YG2.GameplayStop();
+            else YG2.GameplayStart();
+            OnPauseChanged?.Invoke(paused);
         }
 
         public bool TrySpend(int amount)
@@ -65,9 +98,21 @@ namespace TowerDefense
             OnCurrencyChanged?.Invoke(Currency);
         }
 
+        public bool TryRepair()
+        {
+            if (!CanRepair) return false;
+            Currency -= RepairCost;
+            RepairsUsed++;
+            Lives++;
+            OnCurrencyChanged?.Invoke(Currency);
+            OnLivesChanged?.Invoke(Lives);
+            return true;
+        }
+
         public void DamageBase(int amount)
         {
             if (IsGameOver) return;
+            castleDamaged = true;
             Lives -= amount;
             OnLivesChanged?.Invoke(Lives);
             if (Lives <= 0)
@@ -78,12 +123,15 @@ namespace TowerDefense
         {
             if (IsGameOver) return;
             IsGameOver = true;
+            IsPaused = false;
+            Time.timeScale = 1f;
             YG2.GameplayStop();
             if (won)
             {
-                MetaProgress.CompleteLevel(levelNumber, Lives, maxLives);
+                LevelResult result = MetaProgress.CompleteLevel(Level.number, Lives, maxLives, Currency);
                 RetentionSystem.Report(RetentionStat.Wins);
-                if (Lives >= maxLives)
+                RetentionSystem.Report(RetentionStat.Stars, result.stars);
+                if (!castleDamaged)
                     RetentionSystem.Report(RetentionStat.FlawlessWins);
             }
             OnGameEnded?.Invoke(won);
@@ -91,8 +139,7 @@ namespace TowerDefense
 
         public void RestartLevel()
         {
-            Time.timeScale = 1f;
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            Levels.Load(Level);
         }
 
         public void LoadMainMenu(string mainMenuSceneName)

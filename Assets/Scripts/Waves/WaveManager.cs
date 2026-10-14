@@ -37,9 +37,42 @@ namespace TowerDefense
         private int aliveCount;
         private bool skipDelayRequested;
 
+        private float healthMultiplier = 1f;
+
         private void Start()
         {
+            ApplyLevel(Levels.Current);
             StartCoroutine(RunWaves());
+        }
+
+        // The scene holds the base waves; the level scales them and adds more at the end.
+        private void ApplyLevel(LevelDefinition level)
+        {
+            if (level == null || waves.Count == 0) return;
+            healthMultiplier = level.healthMultiplier;
+
+            Wave last = waves[waves.Count - 1];
+            List<Wave> result = new List<Wave>();
+            foreach (Wave wave in waves)
+                result.Add(Scaled(wave, wave.name, level.countMultiplier));
+            for (int i = 1; i <= level.extraWaves; i++)
+                result.Add(Scaled(last, $"Wave {waves.Count + i}", level.countMultiplier * (1f + 0.25f * i)));
+            waves = result;
+        }
+
+        private static Wave Scaled(Wave wave, string name, float countMultiplier)
+        {
+            Wave copy = new Wave { name = name, delayBeforeWave = wave.delayBeforeWave };
+            foreach (SpawnEntry entry in wave.entries)
+            {
+                copy.entries.Add(new SpawnEntry
+                {
+                    enemy = entry.enemy,
+                    count = Mathf.CeilToInt(entry.count * countMultiplier),
+                    interval = entry.interval,
+                });
+            }
+            return copy;
         }
 
         private IEnumerator RunWaves()
@@ -91,7 +124,7 @@ namespace TowerDefense
 
             GameObject go = Instantiate(enemyPrefab, path.Waypoints[0].position, Quaternion.identity);
             Enemy enemy = go.GetComponent<Enemy>();
-            enemy.Initialize(data, path.Waypoints);
+            enemy.Initialize(data, path.Waypoints, healthMultiplier);
             enemy.OnDeath += HandleEnemyRemoved;
             enemy.OnReachedEnd += HandleEnemyRemoved;
             aliveCount++;

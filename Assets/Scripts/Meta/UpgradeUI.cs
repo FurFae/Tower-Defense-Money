@@ -5,7 +5,8 @@ using UnityEngine.UI;
 namespace TowerDefense
 {
     // Towers window on the meta canvas: the whole collection with rarity, level and
-    // blueprints, upgrades for blueprints + coins, and the base upgrades.
+    // blueprints, the deck (towers taken into battle), upgrades for blueprints + coins,
+    // and the base upgrades.
     // Added by RetentionUI, which owns the canvas.
     public class UpgradeUI : MonoBehaviour
     {
@@ -15,11 +16,14 @@ namespace TowerDefense
             public Text title;
             public Button button;
             public Text buttonLabel;
+            public Button deckButton;
+            public Text deckLabel;
         }
 
         private GameObject openButton;
         private GameObject panel;
         private Text wallet;
+        private Text deckHeader;
         private readonly List<Row> towerRows = new List<Row>();
         private readonly List<Row> baseRows = new List<Row>();
 
@@ -43,6 +47,7 @@ namespace TowerDefense
             if (inLevel) panel.SetActive(false);
 
             wallet.text = RuntimeUI.WalletText();
+            deckHeader.text = $"В бой: {MetaProgress.DeckCount}/{MetaProgress.DeckSize}  <size=22>— только эти башни можно строить в уровне</size>";
             foreach (Row row in towerRows)
                 RefreshTower(row);
             foreach (Row row in baseRows)
@@ -75,6 +80,13 @@ namespace TowerDefense
             else if (maxed) row.buttonLabel.text = "Максимум";
             else row.buttonLabel.text = $"Улучшить\n{RuntimeUI.CoinsText(MetaProgress.TowerUpgradeCost(row.id))}";
             RuntimeUI.SetButtonState(row.button, MetaProgress.CanUpgradeTower(row.id));
+
+            bool inDeck = MetaProgress.IsInDeck(row.id);
+            row.deckButton.gameObject.SetActive(level > 0 && tower.playable);
+            row.deckLabel.text = inDeck ? "В бою" : "В бой";
+            // The selected state is highlighted; the last tower in the deck can't be removed.
+            RuntimeUI.SetTabState(row.deckButton, inDeck);
+            row.deckButton.interactable = inDeck ? MetaProgress.DeckCount > 1 : MetaProgress.CanAddToDeck(row.id);
         }
 
         private static void RefreshBase(Row row)
@@ -91,18 +103,23 @@ namespace TowerDefense
         private void Build()
         {
             Button open = RuntimeUI.CreateButton(transform, "TowersButton", "Башни", 30, out _);
-            open.image.color = RuntimeUI.RowColor;
+            RuntimeUI.StyleMenuButton(open);
             RuntimeUI.Place(open.transform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(20f, 0f), new Vector2(200f, 70f));
             open.onClick.AddListener(Toggle);
             openButton = open.gameObject;
 
-            Transform w = RuntimeUI.CreateWindow(transform, "Башни", 970f, out panel, out wallet, out float y);
+            Transform w = RuntimeUI.CreateWindow(transform, "Башни", 1040f, out panel, out wallet, out float y);
 
+            deckHeader = RuntimeUI.CreateText(RuntimeUI.TopRow(w, ref y, 46f), "", 26, TextAnchor.MiddleLeft);
             foreach (TowerDefinition tower in TowerCatalog.Towers)
             {
                 string id = tower.id;
                 Row row = CreateRow(w, ref y, id, TowerCatalog.RarityColor(tower.rarity));
                 row.button.onClick.AddListener(() => MetaProgress.TryUpgradeTower(id));
+                RuntimeUI.SetAnchors(row.title.rectTransform, 0.03f, 0.58f);
+                row.deckButton = RuntimeUI.CreateButton(row.title.transform.parent, "Deck", "", 22, out row.deckLabel);
+                RuntimeUI.SetAnchors((RectTransform)row.deckButton.transform, 0.60f, 0.74f, 6f);
+                row.deckButton.onClick.AddListener(() => MetaProgress.ToggleDeck(id));
                 towerRows.Add(row);
             }
 

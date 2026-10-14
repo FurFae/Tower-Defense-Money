@@ -14,8 +14,8 @@ namespace TowerDefense
         private void Start()
         {
             if (towerData == null) return;
-            // Towers the player has not collected yet cannot be built.
-            if (!MetaProgress.IsUnlocked(towerData.name))
+            // Only towers the player took into battle can be built.
+            if (!MetaProgress.IsInDeck(towerData.name))
             {
                 gameObject.SetActive(false);
                 return;

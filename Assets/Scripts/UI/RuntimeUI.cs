@@ -4,15 +4,22 @@ using UnityEngine.UI;
 
 namespace TowerDefense
 {
-    // Helpers for the windows that are built in code (rewards, upgrades).
+    // Helpers for the windows that are built in code (rewards, upgrades). With a UISkin the
+    // windows get the designer's paper frame, buttons and font; text stays on dark plaques
+    // so the rarity and currency colors read the same either way.
     public static class RuntimeUI
     {
-        public static readonly Color PanelColor = new Color(0.10f, 0.12f, 0.17f, 0.98f);
-        public static readonly Color RowColor = new Color(0.16f, 0.19f, 0.26f, 1f);
-        public static readonly Color BarColor = new Color(0.07f, 0.08f, 0.11f, 1f);
+        public static readonly Color PanelColor = new Color(0.17f, 0.11f, 0.06f, 0.92f);
+        public static readonly Color RowColor = new Color(0.29f, 0.19f, 0.11f, 1f);
+        public static readonly Color BarColor = new Color(0.09f, 0.05f, 0.03f, 1f);
         public static readonly Color AccentColor = new Color(0.20f, 0.75f, 0.50f, 1f);
         public static readonly Color DisabledColor = new Color(0.30f, 0.33f, 0.40f, 1f);
         public static readonly Color CoinColor = new Color(1f, 0.83f, 0.30f, 1f);
+        // Tints for the skinned button sprite.
+        private static readonly Color SkinnedDisabled = new Color(0.45f, 0.45f, 0.45f, 1f);
+        private static readonly Color SkinnedUnselected = new Color(0.65f, 0.65f, 0.65f, 1f);
+        // Width of the paper frame left visible around the dark inner panel.
+        private const float FrameInset = 16f;
 
         private const string CoinTag = "<color=#FFD44D>";
         private const string CrystalTag = "<color=#C084FF>";
@@ -32,10 +39,15 @@ namespace TowerDefense
         {
             get
             {
-                if (font == null) font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                if (font == null)
+                    font = Skin != null && Skin.font != null ? Skin.font : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
                 return font;
             }
         }
+
+        private static UISkin Skin => UISkin.Current;
+
+        private static bool SkinnedButtons => Skin != null && Skin.button != null;
 
         public static string CoinsText(int amount) => $"{CoinTag}{amount} монет</color>";
 
@@ -68,6 +80,17 @@ namespace TowerDefense
             Image window = CreateImage(panelObject.transform, "Window", PanelColor);
             window.raycastTarget = true;
             Place(window.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1000f, height));
+            if (Skin != null && Skin.windowFrame != null)
+            {
+                window.sprite = Skin.windowFrame;
+                window.type = Image.Type.Sliced;
+                window.pixelsPerUnitMultiplier = Skin.framePixelsPerUnitMultiplier;
+                window.color = Color.white;
+                Image inner = CreateImage(window.transform, "Inner", PanelColor);
+                Stretch(inner.rectTransform);
+                inner.rectTransform.offsetMin = new Vector2(FrameInset, FrameInset);
+                inner.rectTransform.offsetMax = new Vector2(-FrameInset, -FrameInset);
+            }
 
             y = 20f;
             Transform header = TopRow(window.transform, ref y, 60f);
@@ -77,7 +100,7 @@ namespace TowerDefense
             SetAnchors(wallet.rectTransform, 0.4f, 0.9f);
 
             Button close = CreateButton(window.transform, "CloseButton", "X", 30, out _);
-            close.image.color = DisabledColor;
+            if (!SkinnedButtons) close.image.color = DisabledColor;
             Place(close.transform, Vector2.one, Vector2.one, new Vector2(-20f, -20f), new Vector2(60f, 60f));
             close.onClick.AddListener(() => panelObject.SetActive(false));
 
@@ -145,19 +168,35 @@ namespace TowerDefense
 
         public static Button CreateButton(Transform parent, string name, string label, int size, out Text labelText)
         {
-            Image image = CreateImage(parent, name, AccentColor);
+            Image image = CreateImage(parent, name, SkinnedButtons ? Color.white : AccentColor);
             image.raycastTarget = true;
+            if (SkinnedButtons) image.sprite = Skin.button;
             Button button = image.gameObject.AddComponent<Button>();
             button.targetGraphic = image;
             button.transition = Selectable.Transition.None;
             labelText = CreateText(image.transform, label, size, TextAnchor.MiddleCenter);
+            if (SkinnedButtons) labelText.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.8f);
             return button;
         }
 
         public static void SetButtonState(Button button, bool active)
         {
             button.interactable = active;
-            button.image.color = active ? AccentColor : DisabledColor;
+            if (SkinnedButtons) button.image.color = active ? Color.white : SkinnedDisabled;
+            else button.image.color = active ? AccentColor : DisabledColor;
+        }
+
+        // Tab buttons stay clickable; the selected one is highlighted.
+        public static void SetTabState(Button button, bool selected)
+        {
+            if (SkinnedButtons) button.image.color = selected ? Color.white : SkinnedUnselected;
+            else button.image.color = selected ? AccentColor : RowColor;
+        }
+
+        // Buttons that open windows, kept dim in the flat style so they don't look like rewards.
+        public static void StyleMenuButton(Button button)
+        {
+            if (!SkinnedButtons) button.image.color = RowColor;
         }
 
         public static void Stretch(RectTransform rect)

@@ -12,7 +12,10 @@ namespace TowerDefense
         public float fireRate = 1f; // shots per second
         public float projectileSpeed = 8f;
         public Sprite baseSprite;
+        // Per tower level (index = level - 1); towers without them use weaponSprite.
+        public WeaponData[] weapons = new WeaponData[7];
         public Sprite weaponSprite;
         public GameObject projectilePrefab;
+        public RuntimeAnimatorController[] animatorControllers = new RuntimeAnimatorController[7];
     }
 }

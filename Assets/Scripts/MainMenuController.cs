@@ -1,3 +1,4 @@
+using TowerDefense;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -23,7 +24,8 @@ public class MainMenuController : MonoBehaviour
 
     public void OnPlayClicked()
     {
-        SceneManager.LoadScene(gameSceneName);
+        if (!LevelSelectUI.Open())
+            SceneManager.LoadScene(gameSceneName);
     }
 
     public void OnQuitClicked()

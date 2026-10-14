@@ -42,6 +42,8 @@ namespace TowerDefense
         private void ShowLevelResult(LevelResult result)
         {
             string text = $"Звёзды: {result.stars} из 3\n+{RuntimeUI.CoinsText(result.coins)}\n";
+            if (result.manaCoins > 0)
+                text += $"Остаток маны {result.leftoverMana}: +{RuntimeUI.CoinsText(result.manaCoins)}\n";
             if (result.campaignTower != null)
                 text += $"Награда кампании: {TowerCatalog.ColoredTitle(result.campaignTower)}\n";
             text += $"\n{Chests.Victory.title}:\n{result.chest.Describe()}";

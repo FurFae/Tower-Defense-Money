@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 744e390d39f14acda7ed5314530e0b89, type: 3}
+  m_Name: UISkin
+  m_EditorClassIdentifier: Assembly-CSharp::TowerDefense.UISkin
+  font: {fileID: 12800000, guid: dd8adc74a15d1014fa0f3b08580efafb, type: 3}
+  windowFrame: {fileID: -4829435805098385177, guid: 34af4f760cfcbe54cb7e9ab96ab83d34, type: 3}
+  button: {fileID: 2530564911472380330, guid: 36e24733bc498cf42a6629463e40157a, type: 3}
+  coinIcon: {fileID: -9101638437731702489, guid: f4de91b3b69d35b449c9f190c6ef9d0e, type: 3}
+  framePixelsPerUnitMultiplier: 0.5

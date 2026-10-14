@@ -50,12 +50,12 @@ namespace TowerDefense
 
         private void UpdateCurrency(int value)
         {
-            if (currencyText != null) currencyText.text = $"Мана: {value}";
+            if (currencyText != null) currencyText.text = $"{value}";
         }
 
         private void UpdateLives(int value)
         {
-            if (livesText != null) livesText.text = $"Жизни: {value}";
+            if (livesText != null) livesText.text = $"{value}";
         }
 
         private void UpdateWave(int current, int total)
@@ -67,6 +67,32 @@ namespace TowerDefense
         {
             if (gameOverPanel != null) gameOverPanel.SetActive(true);
             if (gameOverText != null) gameOverText.text = won ? "Победа!" : "Поражение";
+
+            LevelDefinition next = Levels.Next(gameManager != null ? gameManager.Level : null);
+            if (won && next != null) AddNextLevelButton(next);
+        }
+
+        // A copy of the restart button, so it keeps the designer's look.
+        private void AddNextLevelButton(LevelDefinition next)
+        {
+            Transform restart = gameOverPanel != null ? gameOverPanel.transform.Find("RestartButton") : null;
+            if (restart == null) return;
+
+            RectTransform panelRect = (RectTransform)gameOverPanel.transform;
+            panelRect.sizeDelta += new Vector2(0f, 60f);
+            foreach (RectTransform child in panelRect)
+                child.anchoredPosition += new Vector2(0f, 30f);
+
+            GameObject copy = Instantiate(restart.gameObject, restart.parent);
+            copy.name = "NextLevelButton";
+            RectTransform rect = (RectTransform)copy.transform;
+            rect.anchoredPosition -= new Vector2(0f, 120f);
+            Text label = copy.GetComponentInChildren<Text>();
+            if (label != null) label.text = "Следующий уровень";
+
+            Button button = copy.GetComponent<Button>();
+            button.onClick = new Button.ButtonClickedEvent();
+            button.onClick.AddListener(() => Levels.Load(next));
         }
 
         public void OnRestartClicked() => gameManager?.RestartLevel();

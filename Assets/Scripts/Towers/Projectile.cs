@@ -41,7 +41,7 @@ namespace TowerDefense
             transform.position += toTarget.normalized * step;
 
             float angle = Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg;
-            transform.rotation = Quaternion.Euler(0f, 0f, angle);
+            transform.rotation = Quaternion.Euler(0f, 0f, angle - 90f);
         }
     }
 }

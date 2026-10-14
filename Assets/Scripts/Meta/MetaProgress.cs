@@ -30,6 +30,10 @@ namespace TowerDefense
         public List<int> towerLevels = new List<int>();
         public List<int> towerCopies = new List<int>();
         public int levelsCompleted;
+        // Best stars per level, index = level number - 1.
+        public List<int> levelStars = new List<int>();
+        // Towers taken into battle: only these are offered in the build menu.
+        public List<string> deck = new List<string>();
         public int chestsBought;
         public string shopDay = "";
         public List<int> shopBought = new List<int>();
@@ -39,6 +43,8 @@ namespace TowerDefense
     {
         public int stars;
         public int coins;
+        public int leftoverMana;
+        public int manaCoins;
         public TowerDefinition campaignTower;
         public ChestResult chest;
     }
@@ -53,6 +59,9 @@ namespace TowerDefense
         public const int MaxUpgradeLevel = 5;
         public const float DamagePerLevel = 0.1f;
         public const int ManaPerLevel = 10;
+        public const int DeckSize = 4;
+        // Mana left at the end of a won level turns into coins at this rate.
+        public const int ManaPerCoin = 10;
 
         public static readonly UpgradeDefinition[] BaseUpgrades =
         {
@@ -67,9 +76,6 @@ namespace TowerDefense
         public static event Action OnChanged;
         public static event Action<LevelResult> OnLevelCompleted;
 
-        // PlayerPrefs is backed by IndexedDB in WebGL. Swap Load/Save for the
-        // PluginYG2 Storage module once it is installed to get cloud saves.
-        private const string SaveKey = "meta_v1";
         private static MetaData data;
 
         public static MetaData Data
@@ -83,16 +89,26 @@ namespace TowerDefense
 
         private static void Load()
         {
-            data = JsonUtility.FromJson<MetaData>(PlayerPrefs.GetString(SaveKey, "")) ?? new MetaData();
+            data = JsonUtility.FromJson<MetaData>(SaveStorage.Get(SaveStorage.MetaKey)) ?? new MetaData();
             // The starter tower is always owned.
             if (GetTowerLevel(TowerCatalog.StarterId) == 0)
                 AddBlueprints(TowerCatalog.StarterId, 1, false);
+            // Saves from before the deck existed take every tower they own into battle.
+            if (data.deck.Count == 0)
+                foreach (TowerDefinition tower in TowerCatalog.Towers)
+                    if (GetTowerLevel(tower.id) > 0) TryAddToDeck(tower.id);
         }
 
         public static void Save()
         {
-            PlayerPrefs.SetString(SaveKey, JsonUtility.ToJson(Data));
-            PlayerPrefs.Save();
+            SaveStorage.Set(SaveStorage.MetaKey, JsonUtility.ToJson(Data));
+            OnChanged?.Invoke();
+        }
+
+        // Drops the cached state, e.g. when the cloud save has arrived.
+        public static void Reload()
+        {
+            data = null;
             OnChanged?.Invoke();
         }
 
@@ -203,6 +219,7 @@ namespace TowerDefense
                 unlocked = true;
             }
             data.towerCopies[index] += amount;
+            if (unlocked) TryAddToDeck(towerId);
             if (save) Save();
             return unlocked;
         }
@@ -233,6 +250,7 @@ namespace TowerDefense
             data.coins -= TowerUpgradeCost(towerId);
             data.towerLevels[index]++;
             Save();
+            RetentionSystem.Report(RetentionStat.TowerUpgrades);
             return true;
         }
 
@@ -243,7 +261,51 @@ namespace TowerDefense
 
         public static float DamageMultiplier(string towerId) => 1f + DamageBonusPercent(towerId) / 100f;
 
+        // ---- Deck ----
+
+        public static int DeckCount => Data.deck.Count;
+
+        // Towers outside the catalog are always offered.
+        public static bool IsInDeck(string towerId)
+        {
+            return TowerCatalog.Find(towerId) == null || Data.deck.Contains(towerId);
+        }
+
+        public static bool CanAddToDeck(string towerId)
+        {
+            TowerDefinition tower = TowerCatalog.Find(towerId);
+            return tower != null && tower.playable && GetTowerLevel(towerId) > 0
+                && !data.deck.Contains(towerId) && data.deck.Count < DeckSize;
+        }
+
+        private static bool TryAddToDeck(string towerId)
+        {
+            if (!CanAddToDeck(towerId)) return false;
+            data.deck.Add(towerId);
+            return true;
+        }
+
+        // At least one tower always stays in the deck.
+        public static void ToggleDeck(string towerId)
+        {
+            if (Data.deck.Contains(towerId))
+            {
+                if (data.deck.Count > 1) data.deck.Remove(towerId);
+            }
+            else if (!TryAddToDeck(towerId))
+            {
+                return;
+            }
+            Save();
+        }
+
         // ---- Campaign ----
+
+        public static int GetLevelStars(int levelNumber)
+        {
+            List<int> stars = Data.levelStars;
+            return levelNumber >= 1 && levelNumber <= stars.Count ? stars[levelNumber - 1] : 0;
+        }
 
         public static int StarsFor(int lives, int maxLives)
         {
@@ -253,11 +315,16 @@ namespace TowerDefense
 
         // Pays everything a won level gives: coins by stars, a chest, and on the
         // first win the tower the campaign grants for that level.
-        public static LevelResult CompleteLevel(int levelNumber, int lives, int maxLives)
+        public static LevelResult CompleteLevel(int levelNumber, int lives, int maxLives, int leftoverMana)
         {
             LevelResult result = new LevelResult { stars = StarsFor(lives, maxLives) };
             result.coins = LevelRewards[result.stars - 1];
-            Add(result.coins, 0, false);
+            result.leftoverMana = leftoverMana;
+            result.manaCoins = leftoverMana / ManaPerCoin;
+            Add(result.coins + result.manaCoins, 0, false);
+
+            while (data.levelStars.Count < levelNumber) data.levelStars.Add(0);
+            data.levelStars[levelNumber - 1] = Mathf.Max(data.levelStars[levelNumber - 1], result.stars);
 
             if (levelNumber > data.levelsCompleted)
             {

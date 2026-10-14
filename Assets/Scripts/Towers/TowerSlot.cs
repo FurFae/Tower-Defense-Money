@@ -18,7 +18,7 @@ namespace TowerDefense
 
         private void Update()
         {
-            if (IsOccupied) return;
+            if (GameManager.Instance == null || GameManager.Instance.IsPaused || GameManager.Instance.IsGameOver) return;
             if (Mouse.current == null || !Mouse.current.leftButton.wasPressedThisFrame) return;
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
             Camera cam = Camera.main;
@@ -28,8 +28,10 @@ namespace TowerDefense
             float distanceToPlane = Mathf.Abs(cam.transform.position.z - transform.position.z);
             Vector3 mouseWorld = cam.ScreenToWorldPoint(new Vector3(mouseScreen.x, mouseScreen.y, distanceToPlane));
             Collider2D hit = Physics2D.OverlapPoint(mouseWorld);
-            if (hit != null && hit.gameObject == gameObject)
-                BuildMenuUI.Instance?.Open(this);
+            if (hit == null || hit.gameObject != gameObject) return;
+            // A built tower is upgraded with mana; an empty slot opens the build menu.
+            if (IsOccupied) BattleUI.OpenTower(placedTower);
+            else BuildMenuUI.Instance?.Open(this);
         }
 
         public bool Build(TowerData data, GameObject towerPrefab)

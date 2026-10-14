@@ -11,6 +11,7 @@ namespace TowerDefense
         public static readonly HashSet<Enemy> Active = new HashSet<Enemy>();
 
         [SerializeField] private Transform healthBarFill;
+        [SerializeField] private Animator animator;
 
         public EnemyData Data { get; private set; }
         public float DistanceTraveled { get; private set; }
@@ -31,10 +32,13 @@ namespace TowerDefense
         private void OnEnable() => Active.Add(this);
         private void OnDisable() => Active.Remove(this);
 
-        public void Initialize(EnemyData data, Transform[] path)
+        private float maxHealth;
+
+        public void Initialize(EnemyData data, Transform[] path, float healthMultiplier = 1f)
         {
             Data = data;
-            currentHealth = data.maxHealth;
+            maxHealth = data.maxHealth * healthMultiplier;
+            currentHealth = maxHealth;
             waypoints = path;
             waypointIndex = 0;
             DistanceTraveled = 0f;
@@ -44,6 +48,9 @@ namespace TowerDefense
 
             if (waypoints != null && waypoints.Length > 0)
                 transform.position = waypoints[0].position;
+
+            if (animator != null)
+                animator.runtimeAnimatorController = Data.animatorController;
 
             UpdateHealthBar();
         }
@@ -62,7 +69,11 @@ namespace TowerDefense
                 transform.position = target.position;
                 waypointIndex++;
                 if (waypointIndex >= waypoints.Length)
+                {
                     ReachEnd();
+                    return;
+                }
+                UpdateAnimation(waypoints[waypointIndex].position - transform.position);
             }
             else
             {
@@ -79,10 +90,24 @@ namespace TowerDefense
                 Die();
         }
 
+        private void UpdateAnimation(Vector3 dir)
+        {
+            if (animator == null || animator.runtimeAnimatorController == null) return;
+            if (dir.y > Mathf.Abs(dir.x))
+                animator.Play("U_Walk");
+            else if (-dir.y > Mathf.Abs(dir.x))
+                animator.Play("D_Walk");
+            else
+            {
+                animator.Play("S_Walk");
+                spriteRenderer.flipX = dir.x < 0;
+            }
+        }
+
         private void UpdateHealthBar()
         {
             if (healthBarFill == null || Data == null) return;
-            float ratio = Mathf.Clamp01(currentHealth / Data.maxHealth);
+            float ratio = Mathf.Clamp01(currentHealth / maxHealth);
             Vector3 scale = healthBarFill.localScale;
             scale.x = ratio;
             healthBarFill.localScale = scale;

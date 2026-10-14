@@ -18,3 +18,4 @@ MonoBehaviour:
   currencyReward: 5
   damageToBase: 1
   sprite: {fileID: -3905980153526927250, guid: edeb3fdfe6038c0498244f2afc921662, type: 3}
+  animatorController: {fileID: 9100000, guid: 25d661fb46eee1d42a74c756a0905259, type: 2}

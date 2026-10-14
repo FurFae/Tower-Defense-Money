@@ -61,7 +61,7 @@ namespace TowerDefense
                 RuntimeUI.SetButtonState(button, Shop.CanBuyCrystals);
 
             for (int i = 0; i < tabButtons.Count; i++)
-                tabButtons[i].image.color = i == currentTab ? RuntimeUI.AccentColor : RuntimeUI.RowColor;
+                RuntimeUI.SetTabState(tabButtons[i], i == currentTab);
         }
 
         private void SelectTab(int index)
@@ -75,7 +75,7 @@ namespace TowerDefense
         private void Build()
         {
             Button open = RuntimeUI.CreateButton(transform, "ShopButton", "Магазин", 30, out _);
-            open.image.color = RuntimeUI.RowColor;
+            RuntimeUI.StyleMenuButton(open);
             RuntimeUI.Place(open.transform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(20f, -80f), new Vector2(200f, 70f));
             open.onClick.AddListener(Toggle);
             openButton = open.gameObject;

@@ -87,6 +87,7 @@ namespace TowerDefense
             }
             MetaProgress.Add(result.coins, 0, false);
             if (save) MetaProgress.Save();
+            RetentionSystem.Report(RetentionStat.ChestsOpened);
             return result;
         }
 

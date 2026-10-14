@@ -18,6 +18,21 @@ MonoBehaviour:
   range: 3.5
   fireRate: 1.5
   projectileSpeed: 6
-  baseSprite: {fileID: -3232514380413221358, guid: 57e343fe95093cdc61735bd082c4f6eb, type: 3}
-  weaponSprite: {fileID: -7175008346103436993, guid: c7f52b0be54ece149a9ded21770a0a07, type: 3}
+  baseSprite: {fileID: -855298285791758126, guid: 3b0580791dd613b4991878976f5ade3e, type: 3}
+  weapons:
+  - {fileID: 11400000, guid: f0cf619b2d29b4f4790ef4fe1f3d5b8a, type: 2}
+  - {fileID: 11400000, guid: 8bb7c00b903d13b4eba9724c9e0811f6, type: 2}
+  - {fileID: 11400000, guid: c9e74919a7391bd4d834f641ff3bf439, type: 2}
+  - {fileID: 11400000, guid: bf701c160ad75eb4b9aa653f2ad34802, type: 2}
+  - {fileID: 11400000, guid: bf701c160ad75eb4b9aa653f2ad34802, type: 2}
+  - {fileID: 11400000, guid: bf701c160ad75eb4b9aa653f2ad34802, type: 2}
+  - {fileID: 11400000, guid: bf701c160ad75eb4b9aa653f2ad34802, type: 2}
   projectilePrefab: {fileID: 7231753245129703774, guid: 96d61740cfde28043bf3a5641ba0ae34, type: 3}
+  animatorControllers:
+  - {fileID: 9100000, guid: ae4ade386bd9aa345a7701df31c5e53c, type: 2}
+  - {fileID: 9100000, guid: dfc14266666b8cb4fa5960745d08fdb2, type: 2}
+  - {fileID: 9100000, guid: c05070dec6587ec418ff34c65aaa1766, type: 2}
+  - {fileID: 9100000, guid: f3ed4d58df7dbf442a11234b4ab86b07, type: 2}
+  - {fileID: 9100000, guid: fbcdfba5e7c595d4e8423a4e79af9105, type: 2}
+  - {fileID: 9100000, guid: 9a5bd2dc72403ac48b837a4e7282d17a, type: 2}
+  - {fileID: 9100000, guid: fab59365ac2956f4396b8e6a5160e8a9, type: 2}

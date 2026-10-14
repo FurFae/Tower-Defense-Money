@@ -26,6 +26,8 @@ namespace TowerDefense.EditorTools
 
         // ------------------------------------------------------------
         // 1. Generate ScriptableObject data + prefabs from the art packs
+        // Balance is always rewritten; sprites only when found, and existing prefabs are
+        // kept: the designer animates them by hand now (see Assets/Textures/Sprites).
         // ------------------------------------------------------------
         [MenuItem("Tower Defense/1. Generate Game Content", false, 10)]
         public static void GenerateContent()
@@ -70,7 +72,7 @@ namespace TowerDefense.EditorTools
             data.moveSpeed = speed;
             data.currencyReward = reward;
             data.damageToBase = 1;
-            data.sprite = LoadSprite(spritePath);
+            data.sprite = LoadSprite(spritePath) ?? data.sprite;
             EditorUtility.SetDirty(data);
             return data;
         }
@@ -91,8 +93,8 @@ namespace TowerDefense.EditorTools
             data.range = range;
             data.fireRate = fireRate;
             data.projectileSpeed = projectileSpeed;
-            data.baseSprite = LoadSprite(baseSpritePath);
-            data.weaponSprite = LoadSprite(weaponSpritePath);
+            data.baseSprite = LoadSprite(baseSpritePath) ?? data.baseSprite;
+            data.weaponSprite = LoadSprite(weaponSpritePath) ?? data.weaponSprite;
             data.projectilePrefab = projectilePrefab;
             EditorUtility.SetDirty(data);
             return data;
@@ -101,6 +103,8 @@ namespace TowerDefense.EditorTools
         private static GameObject CreateEnemyPrefab()
         {
             string path = $"{PrefabsFolder}/EnemyPrefab.prefab";
+            GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (existing != null) return existing;
 
             GameObject root = new GameObject("Enemy");
             root.AddComponent<SpriteRenderer>();
@@ -136,6 +140,8 @@ namespace TowerDefense.EditorTools
         private static GameObject CreateProjectilePrefab(string name, string spritePath)
         {
             string path = $"{PrefabsFolder}/{name}.prefab";
+            GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (existing != null) return existing;
 
             GameObject root = new GameObject(name);
             SpriteRenderer sr = root.AddComponent<SpriteRenderer>();
@@ -151,6 +157,8 @@ namespace TowerDefense.EditorTools
         private static GameObject CreateTowerPrefab()
         {
             string path = $"{PrefabsFolder}/TowerPrefab.prefab";
+            GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (existing != null) return existing;
 
             GameObject root = new GameObject("Tower");
 
@@ -170,16 +178,11 @@ namespace TowerDefense.EditorTools
             SpriteRenderer weaponSr = weaponGO.AddComponent<SpriteRenderer>();
             weaponSr.sortingOrder = 2;
 
-            GameObject firePoint = new GameObject("FirePoint");
-            firePoint.transform.SetParent(pivot.transform);
-            firePoint.transform.localPosition = new Vector3(0.5f, 0f, 0f);
-
             Tower towerComp = root.AddComponent<Tower>();
             SerializedObject so = new SerializedObject(towerComp);
             so.FindProperty("baseRenderer").objectReferenceValue = baseSr;
             so.FindProperty("weaponRenderer").objectReferenceValue = weaponSr;
             so.FindProperty("weaponPivot").objectReferenceValue = pivot.transform;
-            so.FindProperty("firePoint").objectReferenceValue = firePoint.transform;
             so.ApplyModifiedProperties();
 
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, path);

@@ -24,6 +24,7 @@ namespace TowerDefense
             if (panel == null) return;
 
             Vector3 screenPos = worldCamera.WorldToScreenPoint(slot.transform.position);
+            screenPos.y += 50f;
             panel.position = screenPos;
             panel.gameObject.SetActive(true);
         }
