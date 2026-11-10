@@ -18,6 +18,9 @@ namespace TowerDefense
         public int Lives { get; private set; }
         public bool IsGameOver { get; private set; }
         public bool IsPaused { get; private set; }
+        // Battle speed multiplier (×1 / ×2); combined with pause via Time.timeScale.
+        public float SpeedScale { get; private set; } = 1f;
+        public bool IsFastForward => SpeedScale > 1.5f;
         public LevelDefinition Level => Levels.Current;
         public int MaxLives => maxLives;
 
@@ -28,7 +31,7 @@ namespace TowerDefense
         public int RepairsUsed { get; private set; }
         public int RepairCost => RepairBaseCost + RepairCostStep * RepairsUsed;
         public bool CanRepair => !IsGameOver && !IsPaused && Lives < maxLives && RepairsUsed < MaxRepairs
-            && Currency >= RepairCost;
+            && Currency >= RepairCost && Levels.ActiveChallenge != Challenge.NoRepair;
 
         private int maxLives;
         // Flawless means the castle was never hit, repairs or not.
@@ -77,15 +80,27 @@ namespace TowerDefense
         {
             if (IsGameOver || paused == IsPaused) return;
             IsPaused = paused;
-            Time.timeScale = paused ? 0f : 1f;
+            ApplyTimeScale();
             if (paused) YG2.GameplayStop();
             else YG2.GameplayStart();
             OnPauseChanged?.Invoke(paused);
         }
 
+        public void ToggleSpeed()
+        {
+            if (IsGameOver || IsPaused) return;
+            SpeedScale = IsFastForward ? 1f : 2f;
+            ApplyTimeScale();
+        }
+
+        private void ApplyTimeScale()
+        {
+            Time.timeScale = IsPaused ? 0f : SpeedScale;
+        }
+
         public bool TrySpend(int amount)
         {
-            if (IsGameOver || amount > Currency) return false;
+            if (IsGameOver || IsPaused || amount < 0 || amount > Currency) return false;
             Currency -= amount;
             OnCurrencyChanged?.Invoke(Currency);
             return true;
@@ -93,7 +108,7 @@ namespace TowerDefense
 
         public void AddCurrency(int amount)
         {
-            if (IsGameOver) return;
+            if (IsGameOver || amount <= 0) return;
             Currency += amount;
             OnCurrencyChanged?.Invoke(Currency);
         }
@@ -111,9 +126,9 @@ namespace TowerDefense
 
         public void DamageBase(int amount)
         {
-            if (IsGameOver) return;
+            if (IsGameOver || amount <= 0) return;
             castleDamaged = true;
-            Lives -= amount;
+            Lives = Mathf.Max(0, Lives - amount);
             OnLivesChanged?.Invoke(Lives);
             if (Lives <= 0)
                 EndGame(false);
@@ -128,11 +143,16 @@ namespace TowerDefense
             YG2.GameplayStop();
             if (won)
             {
+                GameSfx.Play(GameSfx.Event.Victory);
                 LevelResult result = MetaProgress.CompleteLevel(Level.number, Lives, maxLives, Currency);
                 RetentionSystem.Report(RetentionStat.Wins);
                 RetentionSystem.Report(RetentionStat.Stars, result.stars);
                 if (!castleDamaged)
                     RetentionSystem.Report(RetentionStat.FlawlessWins);
+            }
+            else
+            {
+                GameSfx.Play(GameSfx.Event.Defeat);
             }
             OnGameEnded?.Invoke(won);
         }

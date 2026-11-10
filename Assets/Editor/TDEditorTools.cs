@@ -58,6 +58,74 @@ namespace TowerDefense.EditorTools
             Debug.Log("[Tower Defense] Content generated under " + GeneratedRoot);
         }
 
+        // ------------------------------------------------------------
+        // Role enemies for the campaign (roadmap item 5). Runtime systems load them
+        // from Resources/Enemies; art reuses the base pack sprites.
+        // ------------------------------------------------------------
+        [MenuItem("Tower Defense/1.5 Generate Role Enemies", false, 11)]
+        public static void GenerateRoleEnemies()
+        {
+            const string roleFolder = "Assets/Resources/Enemies";
+            EnsureFolder("Assets/Resources");
+            EnsureFolder(roleFolder);
+
+            EnemyData leafbug = AssetDatabase.LoadAssetAtPath<EnemyData>($"{DataFolder}/Enemy_Leafbug.asset");
+            EnemyData scorpion = AssetDatabase.LoadAssetAtPath<EnemyData>($"{DataFolder}/Enemy_Scorpion.asset");
+            EnemyData magmaCrab = AssetDatabase.LoadAssetAtPath<EnemyData>($"{DataFolder}/Enemy_MagmaCrab.asset");
+
+            EnemyData armored = CreateRoleEnemy(roleFolder, "Enemy_ArmoredBug", "Бронежук", 60f, 1.6f, 9, leafbug);
+            armored.arrowDamageMultiplier = 0.35f;
+
+            EnemyData swift = CreateRoleEnemy(roleFolder, "Enemy_Swift", "Стремительный жук", 14f, 4.6f, 4, leafbug);
+            swift.damageToBase = 1;
+
+            EnemyData healer = CreateRoleEnemy(roleFolder, "Enemy_Healer", "Жук-целитель", 40f, 1.6f, 10, scorpion);
+            healer.healPerSecond = 4f;
+            healer.healRadius = 2.2f;
+
+            EnemyData splitter = CreateRoleEnemy(roleFolder, "Enemy_Splitter", "Делящийся жук", 35f, 2.2f, 6, scorpion);
+            splitter.splitCount = 3;
+            splitter.splitInto = leafbug;
+
+            EnemyData cleanse = CreateRoleEnemy(roleFolder, "Enemy_Cleanse", "Магический жук", 45f, 1.9f, 10, magmaCrab);
+            cleanse.cleanseInterval = 4f;
+
+            EnemyData flyer = CreateRoleEnemy(roleFolder, "Enemy_Flyer", "Летающий жук", 25f, 3.4f, 6, leafbug);
+            flyer.isFlying = true;
+
+            EnemyData boss = CreateRoleEnemy(roleFolder, "Enemy_Boss", "Королева жуков", 900f, 1.1f, 150, magmaCrab);
+            boss.isBoss = true;
+            boss.damageToBase = 5;
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("[Tower Defense] Role enemies generated under " + roleFolder);
+        }
+
+        private static EnemyData CreateRoleEnemy(string folder, string fileName, string displayName,
+            float hp, float speed, int reward, EnemyData spriteSource)
+        {
+            string assetPath = $"{folder}/{fileName}.asset";
+            EnemyData data = AssetDatabase.LoadAssetAtPath<EnemyData>(assetPath);
+            if (data == null)
+            {
+                data = ScriptableObject.CreateInstance<EnemyData>();
+                AssetDatabase.CreateAsset(data, assetPath);
+            }
+            data.displayName = displayName;
+            data.maxHealth = hp;
+            data.moveSpeed = speed;
+            data.currencyReward = reward;
+            data.damageToBase = 1;
+            if (spriteSource != null)
+            {
+                data.sprite = spriteSource.sprite;
+                data.animatorController = spriteSource.animatorController;
+            }
+            EditorUtility.SetDirty(data);
+            return data;
+        }
+
         private static EnemyData CreateEnemyData(string name, float hp, float speed, int reward, string spritePath)
         {
             string assetPath = $"{DataFolder}/Enemy_{name.Replace(" ", "")}.asset";
@@ -532,6 +600,803 @@ namespace TowerDefense.EditorTools
             so.ApplyModifiedProperties();
 
             index++;
+        }
+
+        // ------------------------------------------------------------
+        // 6. Create the poison tower content and add it to the game scene
+        // ------------------------------------------------------------
+        private const string PoisonTowerArtDir = "Assets/Textures/Sprites/Skins_tower/poison_tower/";
+
+        [MenuItem("Tower Defense/6. Integrate Poison Tower", false, 60)]
+        public static void IntegratePoisonTower()
+        {
+            EnsureFolder(PrefabsFolder);
+            EnsureFolder(DataFolder);
+
+            Sprite[] levelSprites = new Sprite[8];
+            for (int i = 0; i < levelSprites.Length; i++)
+                levelSprites[i] = LoadSprite($"{PoisonTowerArtDir}PoisonTower_Level{i + 1}.png");
+
+            GameObject impactPrefab = CreatePoisonImpactPrefab();
+            GameObject projectilePrefab = CreatePoisonProjectilePrefab();
+
+            string dataPath = $"{DataFolder}/Tower_PoisonTower.asset";
+            TowerData data = AssetDatabase.LoadAssetAtPath<TowerData>(dataPath);
+            if (data == null)
+            {
+                data = ScriptableObject.CreateInstance<TowerData>();
+                AssetDatabase.CreateAsset(data, dataPath);
+            }
+
+            data.displayName = "Poison Tower";
+            data.cost = 70;
+            data.damage = 3f;
+            data.range = 3.3f;
+            data.fireRate = 0.9f;
+            data.projectileSpeed = 5f;
+            data.damageOverTimePerSecond = 5f;
+            data.damageOverTimeDuration = 3f;
+            data.preferUnpoisonedTarget = true;
+            data.baseSprite = levelSprites[0];
+            data.levelSprites = levelSprites;
+            data.projectilePrefab = projectilePrefab;
+            data.impactPrefab = impactPrefab;
+            EditorUtility.SetDirty(data);
+
+            AddPoisonTowerToBuildMenu(data);
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("[Tower Defense] Poison Tower integrated: data, projectile, impact effect, and build menu option.");
+        }
+
+        private static GameObject CreatePoisonProjectilePrefab()
+        {
+            string path = $"{PrefabsFolder}/PoisonProjectile.prefab";
+            GameObject root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (root == null)
+            {
+                root = new GameObject("PoisonProjectile");
+                root.AddComponent<SpriteRenderer>();
+                root.AddComponent<Projectile>();
+            }
+
+            SpriteRenderer sr = root.GetComponent<SpriteRenderer>();
+            sr.sprite = LoadSprite(PoisonTowerArtDir + "PoisonTower_Projectile.png");
+            sr.sortingOrder = 5;
+            root.transform.localScale = new Vector3(3f, 3f, 3f);
+            if (AssetDatabase.Contains(root))
+            {
+                PrefabUtility.SavePrefabAsset(root);
+            }
+            else
+            {
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+                Object.DestroyImmediate(root);
+                root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            }
+            return root;
+        }
+
+        private static GameObject CreatePoisonImpactPrefab()
+        {
+            string path = $"{PrefabsFolder}/PoisonImpact.prefab";
+            GameObject root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (root == null)
+            {
+                root = new GameObject("PoisonImpact");
+                root.AddComponent<SpriteRenderer>();
+                root.AddComponent<ImpactEffect>();
+            }
+
+            SpriteRenderer sr = root.GetComponent<SpriteRenderer>();
+            sr.sprite = LoadSprite(PoisonTowerArtDir + "PoisonTower_Impact.png");
+            sr.sortingOrder = 6;
+            root.transform.localScale = new Vector3(1.2f, 1.2f, 1.2f);
+
+            ImpactEffect effect = root.GetComponent<ImpactEffect>();
+            SerializedObject so = new SerializedObject(effect);
+            so.FindProperty("lifetime").floatValue = 0.45f;
+            so.FindProperty("scaleGrowth").floatValue = 0.5f;
+            so.ApplyModifiedProperties();
+            if (AssetDatabase.Contains(root))
+            {
+                PrefabUtility.SavePrefabAsset(root);
+            }
+            else
+            {
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+                Object.DestroyImmediate(root);
+                root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            }
+            return root;
+        }
+
+        private static void AddPoisonTowerToBuildMenu(TowerData data)
+        {
+            const string scenePath = "Assets/Scenes/game_scene.unity";
+            if (EditorSceneManager.GetActiveScene().path != scenePath)
+                EditorSceneManager.OpenScene(scenePath);
+
+            GameObject panel = null;
+            foreach (GameObject go in Resources.FindObjectsOfTypeAll<GameObject>())
+            {
+                if (go.name == "BuildMenuPanel" && go.scene.IsValid())
+                {
+                    panel = go;
+                    break;
+                }
+            }
+            if (panel == null)
+            {
+                Debug.LogError("[Tower Defense] BuildMenuPanel not found. Run 'Tower Defense/2. Build Scene Setup' in game_scene first.");
+                return;
+            }
+
+            RectTransform panelRect = panel.GetComponent<RectTransform>();
+            panelRect.sizeDelta = new Vector2(830f, 90f);
+
+            GameObject towerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsFolder}/TowerPrefab.prefab");
+            if (towerPrefab == null)
+            {
+                Debug.LogError("[Tower Defense] TowerPrefab not found.");
+                return;
+            }
+
+            Transform existing = panel.transform.Find("BuildPoisonButton");
+            Button button = existing != null ? existing.GetComponent<Button>() : null;
+            if (button == null)
+                button = CreateButton(panel.transform, "BuildPoisonButton", "Poison\n70g", Vector2.zero, Vector2.zero, new Vector2(110f, 74f));
+            SetupBuildOption(button, data, towerPrefab);
+
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
+        }
+
+        // ------------------------------------------------------------
+        // 7. Create the ballista content and add it to the game scene
+        // ------------------------------------------------------------
+        private const string BallistaArtDir = "Assets/Textures/Sprites/Skins_tower/ballista/";
+
+        [MenuItem("Tower Defense/7. Integrate Ballista", false, 61)]
+        public static void IntegrateBallista()
+        {
+            EnsureFolder(PrefabsFolder);
+            EnsureFolder(DataFolder);
+
+            Sprite[] levelSprites = new Sprite[8];
+            for (int i = 0; i < levelSprites.Length; i++)
+                levelSprites[i] = LoadSprite($"{BallistaArtDir}Ballista_Level{i + 1}.png");
+
+            GameObject impactPrefab = CreateBallistaImpactPrefab();
+            GameObject projectilePrefab = CreateBallistaProjectilePrefab();
+
+            string dataPath = $"{DataFolder}/Tower_Ballista.asset";
+            TowerData data = AssetDatabase.LoadAssetAtPath<TowerData>(dataPath);
+            if (data == null)
+            {
+                data = ScriptableObject.CreateInstance<TowerData>();
+                AssetDatabase.CreateAsset(data, dataPath);
+            }
+
+            data.displayName = "Ballista";
+            data.cost = 120;
+            data.damage = 26f;
+            data.range = 4f;
+            data.fireRate = 0.45f;
+            data.projectileSpeed = 7f;
+            data.splashRadius = 0f;
+            data.pierceCount = 2;
+            data.baseSprite = levelSprites[0];
+            data.levelSprites = levelSprites;
+            data.projectilePrefab = projectilePrefab;
+            data.impactPrefab = impactPrefab;
+            EditorUtility.SetDirty(data);
+
+            AddBallistaToBuildMenu(data);
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("[Tower Defense] Ballista integrated: data, piercing bolt, impact effect, and build menu option.");
+        }
+
+        private static GameObject CreateBallistaProjectilePrefab()
+        {
+            string path = $"{PrefabsFolder}/BallistaProjectile.prefab";
+            GameObject root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (root == null)
+            {
+                root = new GameObject("BallistaProjectile");
+                root.AddComponent<SpriteRenderer>();
+                root.AddComponent<Projectile>();
+            }
+
+            SpriteRenderer sr = root.GetComponent<SpriteRenderer>();
+            sr.sprite = LoadSprite(BallistaArtDir + "Ballista_Bolt.png");
+            sr.sortingOrder = 5;
+            root.transform.localScale = new Vector3(2f, 2f, 2f);
+            if (AssetDatabase.Contains(root))
+            {
+                PrefabUtility.SavePrefabAsset(root);
+            }
+            else
+            {
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+                Object.DestroyImmediate(root);
+                root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            }
+            return root;
+        }
+
+        private static GameObject CreateBallistaImpactPrefab()
+        {
+            string path = $"{PrefabsFolder}/BallistaImpact.prefab";
+            GameObject root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (root == null)
+            {
+                root = new GameObject("BallistaImpact");
+                root.AddComponent<SpriteRenderer>();
+                root.AddComponent<ImpactEffect>();
+            }
+
+            SpriteRenderer sr = root.GetComponent<SpriteRenderer>();
+            sr.sprite = LoadSprite(BallistaArtDir + "Ballista_Impact.png");
+            sr.sortingOrder = 6;
+            root.transform.localScale = new Vector3(1.1f, 1.1f, 1.1f);
+
+            ImpactEffect effect = root.GetComponent<ImpactEffect>();
+            SerializedObject so = new SerializedObject(effect);
+            so.FindProperty("lifetime").floatValue = 0.4f;
+            so.FindProperty("scaleGrowth").floatValue = 0.35f;
+            so.ApplyModifiedProperties();
+            if (AssetDatabase.Contains(root))
+            {
+                PrefabUtility.SavePrefabAsset(root);
+            }
+            else
+            {
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+                Object.DestroyImmediate(root);
+                root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            }
+            return root;
+        }
+
+        private static void AddBallistaToBuildMenu(TowerData data)
+        {
+            const string scenePath = "Assets/Scenes/game_scene.unity";
+            if (EditorSceneManager.GetActiveScene().path != scenePath)
+                EditorSceneManager.OpenScene(scenePath);
+
+            GameObject panel = null;
+            foreach (GameObject go in Resources.FindObjectsOfTypeAll<GameObject>())
+            {
+                if (go.name == "BuildMenuPanel" && go.scene.IsValid())
+                {
+                    panel = go;
+                    break;
+                }
+            }
+            if (panel == null)
+            {
+                Debug.LogError("[Tower Defense] BuildMenuPanel not found. Run 'Tower Defense/2. Build Scene Setup' in game_scene first.");
+                return;
+            }
+
+            RectTransform panelRect = panel.GetComponent<RectTransform>();
+            panelRect.sizeDelta = new Vector2(830f, 90f);
+
+            GameObject towerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsFolder}/TowerPrefab.prefab");
+            if (towerPrefab == null)
+            {
+                Debug.LogError("[Tower Defense] TowerPrefab not found.");
+                return;
+            }
+
+            Transform existing = panel.transform.Find("BuildBallistaButton");
+            Button button = existing != null ? existing.GetComponent<Button>() : null;
+            if (button == null)
+                button = CreateButton(panel.transform, "BuildBallistaButton", "Ballista\n120g", Vector2.zero, Vector2.zero, new Vector2(110f, 74f));
+            SetupBuildOption(button, data, towerPrefab);
+
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
+        }
+
+        // ------------------------------------------------------------
+        // 8. Create the lightning tower content and add it to the game scene
+        // ------------------------------------------------------------
+        private const string LightningArtDir = "Assets/Textures/Sprites/Skins_tower/lightning_tower/";
+
+        [MenuItem("Tower Defense/8. Integrate Lightning Tower", false, 62)]
+        public static void IntegrateLightningTower()
+        {
+            EnsureFolder(PrefabsFolder);
+            EnsureFolder(DataFolder);
+
+            Sprite[] levelSprites = new Sprite[8];
+            for (int i = 0; i < levelSprites.Length; i++)
+                levelSprites[i] = LoadSprite($"{LightningArtDir}LightningTower_Level{i + 1}.png");
+
+            GameObject impactPrefab = CreateLightningImpactPrefab();
+            GameObject projectilePrefab = CreateLightningProjectilePrefab();
+            GameObject arcPrefab = CreateLightningArcPrefab();
+
+            string dataPath = $"{DataFolder}/Tower_LightningTower.asset";
+            TowerData data = AssetDatabase.LoadAssetAtPath<TowerData>(dataPath);
+            if (data == null)
+            {
+                data = ScriptableObject.CreateInstance<TowerData>();
+                AssetDatabase.CreateAsset(data, dataPath);
+            }
+
+            data.displayName = "Lightning Tower";
+            data.cost = 100;
+            data.damage = 12f;
+            data.range = 3.6f;
+            data.fireRate = 1.15f;
+            data.projectileSpeed = 9f;
+            data.splashRadius = 0f;
+            data.pierceCount = 0;
+            data.chainCount = 2;
+            data.chainRadius = 2.2f;
+            data.chainDamageMultiplier = 0.75f;
+            data.baseSprite = levelSprites[0];
+            data.levelSprites = levelSprites;
+            data.projectilePrefab = projectilePrefab;
+            data.impactPrefab = impactPrefab;
+            data.chainArcPrefab = arcPrefab;
+            EditorUtility.SetDirty(data);
+
+            AddLightningTowerToBuildMenu(data);
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("[Tower Defense] Lightning Tower integrated: data, chain lightning, arc effect, and build menu option.");
+        }
+
+        private static GameObject CreateLightningProjectilePrefab()
+        {
+            string path = $"{PrefabsFolder}/LightningProjectile.prefab";
+            GameObject root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (root == null)
+            {
+                root = new GameObject("LightningProjectile");
+                root.AddComponent<SpriteRenderer>();
+                root.AddComponent<Projectile>();
+            }
+
+            SpriteRenderer sr = root.GetComponent<SpriteRenderer>();
+            sr.sprite = LoadSprite(LightningArtDir + "LightningTower_Bolt.png");
+            sr.sortingOrder = 5;
+            root.transform.localScale = new Vector3(2f, 2f, 2f);
+            if (AssetDatabase.Contains(root))
+            {
+                PrefabUtility.SavePrefabAsset(root);
+            }
+            else
+            {
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+                Object.DestroyImmediate(root);
+                root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            }
+            return root;
+        }
+
+        private static GameObject CreateLightningImpactPrefab()
+        {
+            string path = $"{PrefabsFolder}/LightningImpact.prefab";
+            GameObject root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (root == null)
+            {
+                root = new GameObject("LightningImpact");
+                root.AddComponent<SpriteRenderer>();
+                root.AddComponent<ImpactEffect>();
+            }
+
+            SpriteRenderer sr = root.GetComponent<SpriteRenderer>();
+            sr.sprite = LoadSprite(LightningArtDir + "LightningTower_Impact.png");
+            sr.sortingOrder = 6;
+            root.transform.localScale = new Vector3(1f, 1f, 1f);
+
+            ImpactEffect effect = root.GetComponent<ImpactEffect>();
+            SerializedObject so = new SerializedObject(effect);
+            so.FindProperty("lifetime").floatValue = 0.35f;
+            so.FindProperty("scaleGrowth").floatValue = 0.45f;
+            so.ApplyModifiedProperties();
+            if (AssetDatabase.Contains(root))
+            {
+                PrefabUtility.SavePrefabAsset(root);
+            }
+            else
+            {
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+                Object.DestroyImmediate(root);
+                root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            }
+            return root;
+        }
+
+        private static GameObject CreateLightningArcPrefab()
+        {
+            string path = $"{PrefabsFolder}/LightningArc.prefab";
+            GameObject root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (root == null)
+            {
+                root = new GameObject("LightningArc");
+                root.AddComponent<SpriteRenderer>();
+                root.AddComponent<LightningArcEffect>();
+            }
+
+            SpriteRenderer sr = root.GetComponent<SpriteRenderer>();
+            sr.sprite = LoadSprite(LightningArtDir + "LightningTower_Arc.png");
+            sr.sortingOrder = 7;
+            root.transform.localScale = Vector3.one;
+
+            LightningArcEffect effect = root.GetComponent<LightningArcEffect>();
+            SerializedObject so = new SerializedObject(effect);
+            so.FindProperty("lifetime").floatValue = 0.18f;
+            so.ApplyModifiedProperties();
+            if (AssetDatabase.Contains(root))
+            {
+                PrefabUtility.SavePrefabAsset(root);
+            }
+            else
+            {
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+                Object.DestroyImmediate(root);
+                root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            }
+            return root;
+        }
+
+        private static void AddLightningTowerToBuildMenu(TowerData data)
+        {
+            const string scenePath = "Assets/Scenes/game_scene.unity";
+            if (EditorSceneManager.GetActiveScene().path != scenePath)
+                EditorSceneManager.OpenScene(scenePath);
+
+            GameObject panel = null;
+            foreach (GameObject go in Resources.FindObjectsOfTypeAll<GameObject>())
+            {
+                if (go.name == "BuildMenuPanel" && go.scene.IsValid())
+                {
+                    panel = go;
+                    break;
+                }
+            }
+            if (panel == null)
+            {
+                Debug.LogError("[Tower Defense] BuildMenuPanel not found. Run 'Tower Defense/2. Build Scene Setup' in game_scene first.");
+                return;
+            }
+
+            RectTransform panelRect = panel.GetComponent<RectTransform>();
+            panelRect.sizeDelta = new Vector2(830f, 90f);
+
+            GameObject towerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsFolder}/TowerPrefab.prefab");
+            if (towerPrefab == null)
+            {
+                Debug.LogError("[Tower Defense] TowerPrefab not found.");
+                return;
+            }
+
+            Transform existing = panel.transform.Find("BuildLightningButton");
+            Button button = existing != null ? existing.GetComponent<Button>() : null;
+            if (button == null)
+                button = CreateButton(panel.transform, "BuildLightningButton", "Lightning\n100g", Vector2.zero, Vector2.zero, new Vector2(110f, 74f));
+            SetupBuildOption(button, data, towerPrefab);
+
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
+        }
+
+        // ------------------------------------------------------------
+        // 9. Create the ice tower content and add it to the game scene
+        // ------------------------------------------------------------
+        private const string IceTowerArtDir = "Assets/Textures/Sprites/Skins_tower/ice_tower/";
+
+        [MenuItem("Tower Defense/9. Integrate Ice Tower", false, 63)]
+        public static void IntegrateIceTower()
+        {
+            EnsureFolder(PrefabsFolder);
+            EnsureFolder(DataFolder);
+
+            Sprite[] levelSprites = new Sprite[8];
+            for (int i = 0; i < levelSprites.Length; i++)
+                levelSprites[i] = LoadSprite($"{IceTowerArtDir}IceTower_Level{i + 1}.png");
+
+            GameObject impactPrefab = CreateIceImpactPrefab();
+            GameObject projectilePrefab = CreateIceProjectilePrefab();
+
+            string dataPath = $"{DataFolder}/Tower_IceTower.asset";
+            TowerData data = AssetDatabase.LoadAssetAtPath<TowerData>(dataPath);
+            if (data == null)
+            {
+                data = ScriptableObject.CreateInstance<TowerData>();
+                AssetDatabase.CreateAsset(data, dataPath);
+            }
+
+            data.displayName = "Ice Tower";
+            data.cost = 80;
+            data.damage = 6f;
+            data.range = 3.5f;
+            data.fireRate = 1f;
+            data.projectileSpeed = 6.5f;
+            data.splashRadius = 0f;
+            data.pierceCount = 0;
+            data.chainCount = 0;
+            data.slowDuration = 2.5f;
+            data.slowMultiplier = 0.55f;
+            data.baseSprite = levelSprites[0];
+            data.levelSprites = levelSprites;
+            data.projectilePrefab = projectilePrefab;
+            data.impactPrefab = impactPrefab;
+            EditorUtility.SetDirty(data);
+
+            AddIceTowerToBuildMenu(data);
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("[Tower Defense] Ice Tower integrated: data, slowing shard, impact effect, and build menu option.");
+        }
+
+        private static GameObject CreateIceProjectilePrefab()
+        {
+            string path = $"{PrefabsFolder}/IceProjectile.prefab";
+            GameObject root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (root == null)
+            {
+                root = new GameObject("IceProjectile");
+                root.AddComponent<SpriteRenderer>();
+                root.AddComponent<Projectile>();
+            }
+
+            SpriteRenderer sr = root.GetComponent<SpriteRenderer>();
+            sr.sprite = LoadSprite(IceTowerArtDir + "IceTower_Shard.png");
+            sr.sortingOrder = 5;
+            root.transform.localScale = new Vector3(2f, 2f, 2f);
+            if (AssetDatabase.Contains(root))
+            {
+                PrefabUtility.SavePrefabAsset(root);
+            }
+            else
+            {
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+                Object.DestroyImmediate(root);
+                root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            }
+            return root;
+        }
+
+        private static GameObject CreateIceImpactPrefab()
+        {
+            string path = $"{PrefabsFolder}/IceImpact.prefab";
+            GameObject root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (root == null)
+            {
+                root = new GameObject("IceImpact");
+                root.AddComponent<SpriteRenderer>();
+                root.AddComponent<ImpactEffect>();
+            }
+
+            SpriteRenderer sr = root.GetComponent<SpriteRenderer>();
+            sr.sprite = LoadSprite(IceTowerArtDir + "IceTower_Impact.png");
+            sr.sortingOrder = 6;
+            root.transform.localScale = Vector3.one;
+
+            ImpactEffect effect = root.GetComponent<ImpactEffect>();
+            SerializedObject so = new SerializedObject(effect);
+            so.FindProperty("lifetime").floatValue = 0.35f;
+            so.FindProperty("scaleGrowth").floatValue = 0.4f;
+            so.ApplyModifiedProperties();
+            if (AssetDatabase.Contains(root))
+            {
+                PrefabUtility.SavePrefabAsset(root);
+            }
+            else
+            {
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+                Object.DestroyImmediate(root);
+                root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            }
+            return root;
+        }
+
+        private static void AddIceTowerToBuildMenu(TowerData data)
+        {
+            const string scenePath = "Assets/Scenes/game_scene.unity";
+            if (EditorSceneManager.GetActiveScene().path != scenePath)
+                EditorSceneManager.OpenScene(scenePath);
+
+            GameObject panel = null;
+            foreach (GameObject go in Resources.FindObjectsOfTypeAll<GameObject>())
+            {
+                if (go.name == "BuildMenuPanel" && go.scene.IsValid())
+                {
+                    panel = go;
+                    break;
+                }
+            }
+            if (panel == null)
+            {
+                Debug.LogError("[Tower Defense] BuildMenuPanel not found. Run 'Tower Defense/2. Build Scene Setup' in game_scene first.");
+                return;
+            }
+
+            RectTransform panelRect = panel.GetComponent<RectTransform>();
+            panelRect.sizeDelta = new Vector2(830f, 90f);
+
+            GameObject towerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsFolder}/TowerPrefab.prefab");
+            if (towerPrefab == null)
+            {
+                Debug.LogError("[Tower Defense] TowerPrefab not found.");
+                return;
+            }
+
+            Transform existing = panel.transform.Find("BuildIceButton");
+            Button button = existing != null ? existing.GetComponent<Button>() : null;
+            if (button == null)
+                button = CreateButton(panel.transform, "BuildIceButton", "Ice\n80g", Vector2.zero, Vector2.zero, new Vector2(110f, 74f));
+            SetupBuildOption(button, data, towerPrefab);
+
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
+        }
+
+        // ------------------------------------------------------------
+        // 10. Create the fire mage content and add it to the game scene
+        // ------------------------------------------------------------
+        private const string FireMageArtDir = "Assets/Textures/Sprites/Skins_tower/fire_mage_tower/";
+
+        [MenuItem("Tower Defense/10. Integrate Fire Mage", false, 64)]
+        public static void IntegrateFireMage()
+        {
+            EnsureFolder(PrefabsFolder);
+            EnsureFolder(DataFolder);
+
+            Sprite[] levelSprites = new Sprite[8];
+            for (int i = 0; i < levelSprites.Length; i++)
+                levelSprites[i] = LoadSprite($"{FireMageArtDir}FireMageTower_Level{i + 1}.png");
+
+            GameObject impactPrefab = CreateFireImpactPrefab();
+            GameObject projectilePrefab = CreateFireProjectilePrefab();
+
+            string dataPath = $"{DataFolder}/Tower_Flamethrower.asset";
+            TowerData data = AssetDatabase.LoadAssetAtPath<TowerData>(dataPath);
+            if (data == null)
+            {
+                data = ScriptableObject.CreateInstance<TowerData>();
+                AssetDatabase.CreateAsset(data, dataPath);
+            }
+
+            data.displayName = "Fire Mage";
+            data.cost = 110;
+            data.damage = 8f;
+            data.range = 3.4f;
+            data.fireRate = 0.8f;
+            data.projectileSpeed = 6f;
+            data.splashRadius = 1f;
+            data.splashDamageMultiplier = 0.65f;
+            data.pierceCount = 0;
+            data.chainCount = 0;
+            data.slowDuration = 0f;
+            data.burnDamagePerSecond = 6f;
+            data.burnDuration = 2.5f;
+            data.baseSprite = levelSprites[0];
+            data.levelSprites = levelSprites;
+            data.projectilePrefab = projectilePrefab;
+            data.impactPrefab = impactPrefab;
+            EditorUtility.SetDirty(data);
+
+            AddFireMageToBuildMenu(data);
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("[Tower Defense] Fire Mage integrated: data, splash fireball, burn effect, and build menu option.");
+        }
+
+        private static GameObject CreateFireProjectilePrefab()
+        {
+            string path = $"{PrefabsFolder}/FireProjectile.prefab";
+            GameObject root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (root == null)
+            {
+                root = new GameObject("FireProjectile");
+                root.AddComponent<SpriteRenderer>();
+                root.AddComponent<Projectile>();
+            }
+
+            SpriteRenderer sr = root.GetComponent<SpriteRenderer>();
+            sr.sprite = LoadSprite(FireMageArtDir + "FireMage_Fireball.png");
+            sr.sortingOrder = 5;
+            root.transform.localScale = new Vector3(2f, 2f, 2f);
+            if (AssetDatabase.Contains(root))
+            {
+                PrefabUtility.SavePrefabAsset(root);
+            }
+            else
+            {
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+                Object.DestroyImmediate(root);
+                root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            }
+            return root;
+        }
+
+        private static GameObject CreateFireImpactPrefab()
+        {
+            string path = $"{PrefabsFolder}/FireImpact.prefab";
+            GameObject root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (root == null)
+            {
+                root = new GameObject("FireImpact");
+                root.AddComponent<SpriteRenderer>();
+                root.AddComponent<ImpactEffect>();
+            }
+
+            SpriteRenderer sr = root.GetComponent<SpriteRenderer>();
+            sr.sprite = LoadSprite(FireMageArtDir + "FireMage_Impact.png");
+            sr.sortingOrder = 6;
+            root.transform.localScale = Vector3.one;
+
+            ImpactEffect effect = root.GetComponent<ImpactEffect>();
+            SerializedObject so = new SerializedObject(effect);
+            so.FindProperty("lifetime").floatValue = 0.35f;
+            so.FindProperty("scaleGrowth").floatValue = 0.45f;
+            so.ApplyModifiedProperties();
+            if (AssetDatabase.Contains(root))
+            {
+                PrefabUtility.SavePrefabAsset(root);
+            }
+            else
+            {
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+                Object.DestroyImmediate(root);
+                root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            }
+            return root;
+        }
+
+        private static void AddFireMageToBuildMenu(TowerData data)
+        {
+            const string scenePath = "Assets/Scenes/game_scene.unity";
+            if (EditorSceneManager.GetActiveScene().path != scenePath)
+                EditorSceneManager.OpenScene(scenePath);
+
+            GameObject panel = null;
+            foreach (GameObject go in Resources.FindObjectsOfTypeAll<GameObject>())
+            {
+                if (go.name == "BuildMenuPanel" && go.scene.IsValid())
+                {
+                    panel = go;
+                    break;
+                }
+            }
+            if (panel == null)
+            {
+                Debug.LogError("[Tower Defense] BuildMenuPanel not found. Run 'Tower Defense/2. Build Scene Setup' in game_scene first.");
+                return;
+            }
+
+            RectTransform panelRect = panel.GetComponent<RectTransform>();
+            panelRect.sizeDelta = new Vector2(830f, 90f);
+
+            GameObject towerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsFolder}/TowerPrefab.prefab");
+            if (towerPrefab == null)
+            {
+                Debug.LogError("[Tower Defense] TowerPrefab not found.");
+                return;
+            }
+
+            Transform existing = panel.transform.Find("BuildFireButton");
+            Button button = existing != null ? existing.GetComponent<Button>() : null;
+            if (button == null)
+                button = CreateButton(panel.transform, "BuildFireButton", "Fire\n110g", Vector2.zero, Vector2.zero, new Vector2(110f, 74f));
+            SetupBuildOption(button, data, towerPrefab);
+
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
         }
 
         // ------------------------------------------------------------

@@ -36,3 +36,5 @@ MonoBehaviour:
   - {fileID: 9100000, guid: fbcdfba5e7c595d4e8423a4e79af9105, type: 2}
   - {fileID: 9100000, guid: 9a5bd2dc72403ac48b837a4e7282d17a, type: 2}
   - {fileID: 9100000, guid: fab59365ac2956f4396b8e6a5160e8a9, type: 2}
+  canHitFlying: 1
+  projectileIsArrow: 1

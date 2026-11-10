@@ -83,6 +83,7 @@ namespace TowerDefense
             gameObject.AddComponent<LevelSelectUI>();
             gameObject.AddComponent<PauseUI>();
             gameObject.AddComponent<BattleUI>();
+            gameObject.AddComponent<BattleControlsUI>();
 
             RetentionSystem.OnChanged += Refresh;
             RetentionSystem.OnGoalCompleted += ShowToast;

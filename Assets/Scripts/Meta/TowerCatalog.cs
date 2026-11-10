@@ -34,12 +34,12 @@ namespace TowerDefense
         public static readonly TowerDefinition[] Towers =
         {
             new TowerDefinition(StarterId, "Башня лучников", Rarity.Common, 0, true),
-            new TowerDefinition("Tower_IceTower", "Ледяная башня", Rarity.Common, 0, false),
+            new TowerDefinition("Tower_IceTower", "Ледяная башня", Rarity.Common, 0, true),
             new TowerDefinition("Tower_CannonTower", "Пушка", Rarity.Uncommon, 1, true),
-            new TowerDefinition("Tower_PoisonTower", "Ядовитая башня", Rarity.Uncommon, 2, false),
-            new TowerDefinition("Tower_LightningTower", "Башня молний", Rarity.Rare, 4, false),
-            new TowerDefinition("Tower_Ballista", "Баллиста", Rarity.Rare, 6, false),
-            new TowerDefinition("Tower_Flamethrower", "Огнемёт", Rarity.Epic, 0, false),
+            new TowerDefinition("Tower_PoisonTower", "Ядовитая башня", Rarity.Uncommon, 2, true),
+            new TowerDefinition("Tower_LightningTower", "Башня молний", Rarity.Rare, 0, true),
+            new TowerDefinition("Tower_Ballista", "Баллиста", Rarity.Rare, 0, true),
+            new TowerDefinition("Tower_Flamethrower", "Огнемёт", Rarity.Epic, 0, true),
             new TowerDefinition("Tower_Totem", "Тотем поддержки", Rarity.Legendary, 0, false),
         };
 

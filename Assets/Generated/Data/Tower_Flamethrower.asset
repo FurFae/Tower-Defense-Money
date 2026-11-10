@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b369f8ab5b0b1e4482ccc4e9b7ef4a4, type: 3}
+  m_Name: Tower_Flamethrower
+  m_EditorClassIdentifier: Assembly-CSharp::TowerDefense.TowerData
+  displayName: Fire Mage
+  cost: 110
+  damage: 8
+  range: 3.4
+  fireRate: 0.8
+  projectileSpeed: 6
+  splashRadius: 1
+  splashDamageMultiplier: 0.65
+  pierceCount: 0
+  chainCount: 0
+  chainRadius: 2
+  chainDamageMultiplier: 0.75
+  chainArcPrefab: {fileID: 0}
+  baseSprite: {fileID: 21300000, guid: 962b92bb0840e92f1cfa6935b36562c9, type: 3}
+  levelSprites:
+  - {fileID: 21300000, guid: 962b92bb0840e92f1cfa6935b36562c9, type: 3}
+  - {fileID: 21300000, guid: 1ebec5b2819874b2ca83a56c157cf52e, type: 3}
+  - {fileID: 21300000, guid: e0649b6a03a2c0f43c61148aae4aa844, type: 3}
+  - {fileID: 21300000, guid: 30ed6b0c1f1694364560378848642086, type: 3}
+  - {fileID: 21300000, guid: 1a93c4ad06ef9eba83a4d7dc79742b20, type: 3}
+  - {fileID: 21300000, guid: 1ea3c802bee2a962a8e44c2a2abd8a4e, type: 3}
+  - {fileID: 21300000, guid: 9916e7d82afe01cf962e71291d694f81, type: 3}
+  - {fileID: 21300000, guid: 7f923ad8370dd347ba602cba5bddcabd, type: 3}
+  weapons:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  weaponSprite: {fileID: 0}
+  projectilePrefab: {fileID: 8829489348059472031, guid: efd4fcb8f0d25404789926f755df6761, type: 3}
+  damageOverTimePerSecond: 0
+  damageOverTimeDuration: 0
+  preferUnpoisonedTarget: 0
+  slowDuration: 0
+  slowMultiplier: 0.55
+  burnDamagePerSecond: 6
+  burnDuration: 2.5
+  impactPrefab: {fileID: 4762970223737739878, guid: e0d58a0fdbe9a5641a4a694690554cde, type: 3}
+  animatorControllers:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  canHitFlying: 0
+  projectileIsArrow: 0

@@ -21,6 +21,7 @@ namespace TowerDefense
         private GameObject panel;
         private Text wallet;
         private readonly List<Row> rows = new List<Row>();
+        private readonly List<Button> challengeButtons = new List<Button>();
 
         private void Awake()
         {
@@ -59,12 +60,31 @@ namespace TowerDefense
                 row.buttonLabel.text = unlocked ? "Играть" : "Закрыт";
                 RuntimeUI.SetButtonState(row.button, unlocked);
             }
+
+            for (int i = 0; i < challengeButtons.Count; i++)
+                RuntimeUI.SetTabState(challengeButtons[i], (int)Levels.ActiveChallenge == i);
         }
 
         private void Build()
         {
-            float height = 150f + Levels.All.Length * 108f;
+            float height = 220f + Levels.All.Length * 108f;
             Transform w = RuntimeUI.CreateWindow(transform, "Выбор уровня", height, out panel, out wallet, out float y);
+
+            // Режим боя: обычный или челлендж с повышенной наградой.
+            Transform challengeRow = RuntimeUI.TopRow(w, ref y, 56f);
+            string[] names = { "Обычный", "Без ремонта ×1.5", "Только редкие ×2" };
+            for (int i = 0; i < names.Length; i++)
+            {
+                int index = i;
+                Button challenge = RuntimeUI.CreateButton(challengeRow, "Challenge", names[i], 22, out _);
+                RuntimeUI.SetAnchors((RectTransform)challenge.transform, i * 0.334f + 0.003f, (i + 1) * 0.334f - 0.003f);
+                challenge.onClick.AddListener(() =>
+                {
+                    Levels.ActiveChallenge = (Challenge)index;
+                    Refresh();
+                });
+                challengeButtons.Add(challenge);
+            }
 
             foreach (LevelDefinition level in Levels.All)
             {

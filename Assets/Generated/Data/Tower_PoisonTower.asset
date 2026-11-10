@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b369f8ab5b0b1e4482ccc4e9b7ef4a4, type: 3}
+  m_Name: Tower_PoisonTower
+  m_EditorClassIdentifier: Assembly-CSharp::TowerDefense.TowerData
+  displayName: Poison Tower
+  cost: 70
+  damage: 3
+  range: 3.3
+  fireRate: 0.9
+  projectileSpeed: 5
+  splashRadius: 0
+  splashDamageMultiplier: 0.65
+  baseSprite: {fileID: 21300000, guid: 05ac9b6f606e1297edfaa69c54c70814, type: 3}
+  levelSprites:
+  - {fileID: 21300000, guid: 05ac9b6f606e1297edfaa69c54c70814, type: 3}
+  - {fileID: 21300000, guid: 5766601580c1b6e3f5547d7824fe6e12, type: 3}
+  - {fileID: 21300000, guid: 122f504e44858a056b7a7199d0f74607, type: 3}
+  - {fileID: 21300000, guid: 4d6ddee05398e3da14b8fa4130816b41, type: 3}
+  - {fileID: 21300000, guid: dba5bcb206bbaece09bb4b45ef0445d9, type: 3}
+  - {fileID: 21300000, guid: 207c5ddf9f9588e67f9a54a788967a96, type: 3}
+  - {fileID: 21300000, guid: 93f41b509eb218e04b387b7f55659867, type: 3}
+  - {fileID: 21300000, guid: 955ed1f12158a47c44b0c601b0ec651d, type: 3}
+  weapons:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  weaponSprite: {fileID: 0}
+  projectilePrefab: {fileID: 8822773316076688755, guid: cdd85913132f2394191dae8ffbcf9515, type: 3}
+  damageOverTimePerSecond: 5
+  damageOverTimeDuration: 3
+  preferUnpoisonedTarget: 1
+  impactPrefab: {fileID: 8610447681948162227, guid: de0f3e5a9e8acbc46bd1124da4cd73a4, type: 3}
+  animatorControllers:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  canHitFlying: 1
+  projectileIsArrow: 0

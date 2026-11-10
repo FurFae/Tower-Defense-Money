@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b369f8ab5b0b1e4482ccc4e9b7ef4a4, type: 3}
+  m_Name: Tower_LightningTower
+  m_EditorClassIdentifier: Assembly-CSharp::TowerDefense.TowerData
+  displayName: Lightning Tower
+  cost: 100
+  damage: 12
+  range: 3.6
+  fireRate: 1.15
+  projectileSpeed: 9
+  splashRadius: 0
+  splashDamageMultiplier: 0.65
+  pierceCount: 0
+  chainCount: 2
+  chainRadius: 2.2
+  chainDamageMultiplier: 0.75
+  chainArcPrefab: {fileID: 5900533660561677760, guid: 86f6262a1d2fe78499a36e38aa80fc0c, type: 3}
+  baseSprite: {fileID: 21300000, guid: cd184e968bf4864941d721a2df788abc, type: 3}
+  levelSprites:
+  - {fileID: 21300000, guid: cd184e968bf4864941d721a2df788abc, type: 3}
+  - {fileID: 21300000, guid: 5111a05dc7e0807e65c77c4036a43350, type: 3}
+  - {fileID: 21300000, guid: fb48de61b9692b6bb647f902caafd862, type: 3}
+  - {fileID: 21300000, guid: 58e0a78fdd28d01f3311237f278cff79, type: 3}
+  - {fileID: 21300000, guid: ea232fb5675bbee404f2ab5a695a1b97, type: 3}
+  - {fileID: 21300000, guid: 9082fa319efc6c340ad3e5b3e58db890, type: 3}
+  - {fileID: 21300000, guid: ade0992b3380200d27b3b1b2cf59a8cf, type: 3}
+  - {fileID: 21300000, guid: 36d7a017ef2e5c57f735c97ede35f590, type: 3}
+  weapons:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  weaponSprite: {fileID: 0}
+  projectilePrefab: {fileID: 227878901078549647, guid: dcb2fc1c5c3759e4ba82e76db7e85a86, type: 3}
+  damageOverTimePerSecond: 0
+  damageOverTimeDuration: 0
+  impactPrefab: {fileID: 1898325761276463210, guid: 9bf5a50467a2b6d4aae204bde3e4ccf0, type: 3}
+  animatorControllers:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  canHitFlying: 1
+  projectileIsArrow: 0

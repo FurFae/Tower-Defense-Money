@@ -11,6 +11,10 @@ namespace TowerDefense
         [SerializeField] private Text label;
         [SerializeField] private Image icon;
 
+        // Read by BuildMenuUI, which rebuilds the panel as an icon grid in code.
+        public TowerData TowerData => towerData;
+        public GameObject TowerPrefab => towerPrefab;
+
         private void Start()
         {
             if (towerData == null) return;

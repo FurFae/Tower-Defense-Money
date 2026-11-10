@@ -16,15 +16,18 @@ namespace TowerDefense
         public bool IsOccupied { get; private set; }
         private Tower placedTower;
 
+        public Tower PlacedTower => placedTower;
+
         private void Update()
         {
             if (GameManager.Instance == null || GameManager.Instance.IsPaused || GameManager.Instance.IsGameOver) return;
-            if (Mouse.current == null || !Mouse.current.leftButton.wasPressedThisFrame) return;
+            Vector2? pointerScreen = ReadPointerPress();
+            if (pointerScreen == null) return;
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
             Camera cam = Camera.main;
             if (cam == null) return;
 
-            Vector2 mouseScreen = Mouse.current.position.ReadValue();
+            Vector2 mouseScreen = pointerScreen.Value;
             float distanceToPlane = Mathf.Abs(cam.transform.position.z - transform.position.z);
             Vector3 mouseWorld = cam.ScreenToWorldPoint(new Vector3(mouseScreen.x, mouseScreen.y, distanceToPlane));
             Collider2D hit = Physics2D.OverlapPoint(mouseWorld);
@@ -32,6 +35,26 @@ namespace TowerDefense
             // A built tower is upgraded with mana; an empty slot opens the build menu.
             if (IsOccupied) BattleUI.OpenTower(placedTower);
             else BuildMenuUI.Instance?.Open(this);
+        }
+
+        // Works with mouse and touch: the new Input System exposes both uniformly.
+        private static Vector2? ReadPointerPress()
+        {
+            if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+                return Mouse.current.position.ReadValue();
+            if (Touchscreen.current != null
+                && Touchscreen.current.primaryTouch.press.wasPressedThisFrame)
+                return Touchscreen.current.primaryTouch.position.ReadValue();
+            return null;
+        }
+
+        // Sell flow: the UI asks the tower for the refund, then frees the slot.
+        public void ClearTower()
+        {
+            if (placedTower != null) Destroy(placedTower.gameObject);
+            placedTower = null;
+            IsOccupied = false;
+            if (indicator != null) indicator.enabled = true;
         }
 
         public bool Build(TowerData data, GameObject towerPrefab)

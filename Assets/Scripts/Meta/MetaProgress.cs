@@ -37,6 +37,8 @@ namespace TowerDefense
         public int chestsBought;
         public string shopDay = "";
         public List<int> shopBought = new List<int>();
+        // Save format version; migrations run in MetaProgress.Load.
+        public int version = MetaProgress.SaveVersion;
     }
 
     public class LevelResult
@@ -62,6 +64,8 @@ namespace TowerDefense
         public const int DeckSize = 4;
         // Mana left at the end of a won level turns into coins at this rate.
         public const int ManaPerCoin = 10;
+        // Bump when MetaData changes shape; Load() migrates older saves step by step.
+        public const int SaveVersion = 2;
 
         public static readonly UpgradeDefinition[] BaseUpgrades =
         {
@@ -90,6 +94,7 @@ namespace TowerDefense
         private static void Load()
         {
             data = JsonUtility.FromJson<MetaData>(SaveStorage.Get(SaveStorage.MetaKey)) ?? new MetaData();
+            Migrate(data);
             // The starter tower is always owned.
             if (GetTowerLevel(TowerCatalog.StarterId) == 0)
                 AddBlueprints(TowerCatalog.StarterId, 1, false);
@@ -97,6 +102,22 @@ namespace TowerDefense
             if (data.deck.Count == 0)
                 foreach (TowerDefinition tower in TowerCatalog.Towers)
                     if (GetTowerLevel(tower.id) > 0) TryAddToDeck(tower.id);
+        }
+
+        // Forward-compatible save migrations: each step bumps the version by one.
+        private static void Migrate(MetaData loaded)
+        {
+            while (loaded.version < SaveVersion)
+            {
+                switch (loaded.version)
+                {
+                    case 0:
+                    case 1:
+                        // v1 -> v2: nothing to convert yet; new fields have defaults.
+                        break;
+                }
+                loaded.version++;
+            }
         }
 
         public static void Save()
@@ -125,7 +146,7 @@ namespace TowerDefense
 
         public static bool TrySpendCoins(int amount, bool save = true)
         {
-            if (Data.coins < amount) return false;
+            if (amount < 0 || Data.coins < amount) return false;
             data.coins -= amount;
             if (save) Save();
             return true;
@@ -133,7 +154,7 @@ namespace TowerDefense
 
         public static bool TrySpendCrystals(int amount, bool save = true)
         {
-            if (Data.crystals < amount) return false;
+            if (amount < 0 || Data.crystals < amount) return false;
             data.crystals -= amount;
             if (save) Save();
             return true;
@@ -318,7 +339,7 @@ namespace TowerDefense
         public static LevelResult CompleteLevel(int levelNumber, int lives, int maxLives, int leftoverMana)
         {
             LevelResult result = new LevelResult { stars = StarsFor(lives, maxLives) };
-            result.coins = LevelRewards[result.stars - 1];
+            result.coins = Mathf.RoundToInt(LevelRewards[result.stars - 1] * Levels.RewardMultiplier);
             result.leftoverMana = leftoverMana;
             result.manaCoins = leftoverMana / ManaPerCoin;
             Add(result.coins + result.manaCoins, 0, false);

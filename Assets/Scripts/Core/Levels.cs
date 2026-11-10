@@ -26,8 +26,15 @@ namespace TowerDefense
         }
     }
 
-    // The campaign. Levels 2 and 3 replay game_scene with harder waves until the designer
-    // paints their own maps: then only sceneName changes (and the scene goes into Build Settings).
+    public enum Challenge
+    {
+        None = 0,
+        NoRepair = 1,  // без ремонта замка, награда ×1.5
+        RareOnly = 2,  // колода: только редкие и выше, награда ×2
+    }
+
+    // The campaign. One painted scene; MapLayouts turns it into three different maps
+    // (mirrored/offset routes, pruned build slots, per-level enemy mixes, level-3 boss).
     public static class Levels
     {
         public static readonly LevelDefinition[] All =
@@ -36,6 +43,12 @@ namespace TowerDefense
             new LevelDefinition(2, "Тёмная чаща", "game_scene", 1.4f, 1.3f, 1),
             new LevelDefinition(3, "Осада замка", "game_scene", 1.9f, 1.6f, 2),
         };
+
+        // Челлендж, выбранный в окне выбора уровня; действует на следующий запуск.
+        public static Challenge ActiveChallenge { get; set; } = Challenge.None;
+
+        public static float RewardMultiplier => ActiveChallenge == Challenge.RareOnly ? 2f
+            : ActiveChallenge == Challenge.NoRepair ? 1.5f : 1f;
 
         // The level being played; null when a scene is started directly in the Editor.
         public static LevelDefinition Current { get; private set; }

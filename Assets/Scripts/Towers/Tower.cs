@@ -2,6 +2,21 @@ using UnityEngine;
 
 namespace TowerDefense
 {
+    public enum TargetingMode
+    {
+        ClosestToBase = 0, // дальше всех прошёл по маршруту
+        ClosestToTower = 1,
+        Tankiest = 2,
+        Fastest = 3,
+    }
+
+    public enum PoisonMode
+    {
+        NewTarget = 0,   // всегда неотравленная цель (по умолчанию)
+        StrongestPoison = 1, // добивает самого отравленного... сильнейший яд держит
+        Tankiest = 2,
+    }
+
     public class Tower : MonoBehaviour
     {
         [SerializeField] private SpriteRenderer baseRenderer;
@@ -12,6 +27,7 @@ namespace TowerDefense
 
         // In-battle upgrades bought with mana; they last until the end of the level.
         public const int MaxBattleTier = 2;
+        private const float SellRefund = 0.7f; // доля вложенной маны при продаже
         private static readonly float[] TierCostMultipliers = { 1.5f, 3f };
         private const float DamagePerTier = 0.4f;
         private const float RangePerTier = 0.4f;
@@ -21,11 +37,15 @@ namespace TowerDefense
         private float baseDamage;
         private float cooldown;
         private TextMesh tierBadge;
+        private int invested; // мана, вложенная в постройку и улучшения (для продажи)
 
         public TowerData Data => data;
         public int BattleTier { get; private set; }
+        public TargetingMode Targeting { get; set; }
+        public PoisonMode PoisonTargeting { get; set; }
         public bool IsBattleMaxed => BattleTier >= MaxBattleTier;
         public int UpgradeCost => IsBattleMaxed ? 0 : Mathf.RoundToInt(data.cost * TierCostMultipliers[BattleTier]);
+        public int SellPrice => Mathf.RoundToInt(invested * SellRefund);
         public float Damage => DamageAt(BattleTier);
         public float Range => RangeAt(BattleTier);
 
@@ -37,8 +57,20 @@ namespace TowerDefense
         {
             GameManager game = GameManager.Instance;
             if (IsBattleMaxed || game == null || game.IsPaused || !game.TrySpend(UpgradeCost)) return false;
+            invested += UpgradeCost;
             BattleTier++;
+            GameSfx.Play(GameSfx.Event.Upgrade, transform.position);
             ShowTierBadge();
+            return true;
+        }
+
+        // Returns invested mana and marks the slot free; the slot destroys the tower.
+        public bool TrySell()
+        {
+            GameManager game = GameManager.Instance;
+            if (game == null || game.IsPaused || game.IsGameOver) return false;
+            game.AddCurrency(SellPrice);
+            GameSfx.Play(GameSfx.Event.Sell, transform.position);
             return true;
         }
 
@@ -69,17 +101,23 @@ namespace TowerDefense
         public void Initialize(TowerData towerData)
         {
             data = towerData;
+            BattleTier = 0;
+            Targeting = TargetingMode.ClosestToBase;
+            PoisonTargeting = PoisonMode.NewTarget;
+            invested = towerData.cost;
             // Art exists for fewer levels than a tower can reach: higher levels reuse the last one.
             int level = MetaProgress.GetTowerLevel(data.name);
+            Sprite levelSprite = ForLevel(data.levelSprites, level, out int baseArtLevel);
             weapon = ForLevel(data.weapons, level, out _);
             baseDamage = data.damage * MetaProgress.DamageMultiplier(data.name);
-            if (baseRenderer != null) baseRenderer.sprite = data.baseSprite;
+            if (baseRenderer != null)
+                baseRenderer.sprite = levelSprite != null ? levelSprite : data.baseSprite;
             if (weaponRenderer != null)
                 weaponRenderer.sprite = weapon != null ? weapon.sprite : data.weaponSprite;
             if (animator != null)
             {
                 animator.runtimeAnimatorController = ForLevel(data.animatorControllers, level, out int artLevel);
-                ShowFinalStage(artLevel);
+                ShowFinalStage(Mathf.Max(artLevel, baseArtLevel));
             }
             if (weaponAnimator != null)
                 weaponAnimator.runtimeAnimatorController = weapon != null ? weapon.animatorController : null;
@@ -118,9 +156,14 @@ namespace TowerDefense
         private void Update()
         {
             if (data == null) return;
+            if (GameManager.Instance != null && (GameManager.Instance.IsGameOver || GameManager.Instance.IsPaused)) return;
 
             Enemy target = FindTarget();
-            if (target == null) return;
+            if (target == null)
+            {
+                RecoverRecoil();
+                return;
+            }
 
             AimAt(target.transform.position);
 
@@ -130,25 +173,65 @@ namespace TowerDefense
                 Fire(target);
                 cooldown = 1f / Mathf.Max(0.01f, data.fireRate);
             }
+            RecoverRecoil();
         }
 
         private Enemy FindTarget()
         {
-            Enemy best = null;
-            float bestProgress = -1f;
             Vector3 origin = transform.position;
+            if (data.preferUnpoisonedTarget && PoisonTargeting == PoisonMode.NewTarget)
+            {
+                Enemy unpoisoned = FindTarget(origin, true);
+                if (unpoisoned != null) return unpoisoned;
+            }
+            return FindTarget(origin, false);
+        }
+
+        private Enemy FindTarget(Vector3 origin, bool unpoisonedOnly)
+        {
+            Enemy best = null;
+            float bestScore = float.MinValue;
 
             foreach (Enemy enemy in Enemy.Active)
             {
                 if (enemy == null) continue;
+                if (unpoisonedOnly && enemy.IsPoisoned) continue;
+                if (enemy.IsFlying && !data.canHitFlying) continue;
                 float dist = Vector3.Distance(origin, enemy.transform.position);
-                if (dist <= Range && enemy.DistanceTraveled > bestProgress)
+                if (dist > Range) continue;
+
+                float score = ScoreTarget(enemy, origin, dist);
+                if (score > bestScore)
                 {
-                    bestProgress = enemy.DistanceTraveled;
+                    bestScore = score;
                     best = enemy;
                 }
             }
             return best;
+        }
+
+        private float ScoreTarget(Enemy enemy, Vector3 origin, float dist)
+        {
+            switch (Targeting)
+            {
+                case TargetingMode.ClosestToTower: return -dist;
+                case TargetingMode.Tankiest:
+                    return enemy.MaxHealth + (PoisonTargeting == PoisonMode.Tankiest && data.preferUnpoisonedTarget ? enemy.CurrentHealth : 0f);
+                case TargetingMode.Fastest: return enemy.MoveSpeed;
+                default: return enemy.DistanceTraveled; // ClosestToBase
+            }
+        }
+
+        // Простая «живая» анимация без новых ассетов: отдача оружия назад и возврат.
+        private Vector3 pivotBasePosition;
+        private Vector3 recoilOffset;
+        private float recoil;
+
+        private void RecoverRecoil()
+        {
+            if (weaponPivot == null || recoil <= 0f) return;
+            recoil = Mathf.MoveTowards(recoil, 0f, Time.deltaTime * 6f);
+            weaponPivot.position = pivotBasePosition + recoilOffset * recoil;
         }
 
         private void AimAt(Vector3 worldPos)
@@ -161,10 +244,25 @@ namespace TowerDefense
         {
             if (data.projectilePrefab == null) return;
             Vector3 spawnPos = weaponPivot != null ? weaponPivot.position : transform.position;
-            GameObject go = Instantiate(data.projectilePrefab, spawnPos, Quaternion.identity);
+            GameObject go = SimplePool.Get(data.projectilePrefab, spawnPos, Quaternion.identity);
             Projectile projectile = go.GetComponent<Projectile>();
             if (projectile != null)
-                projectile.Initialize(target, Damage, data.projectileSpeed);
+                projectile.Initialize(target, Damage, data.projectileSpeed,
+                    data.splashRadius, data.splashDamageMultiplier,
+                    data.damageOverTimePerSecond, data.damageOverTimeDuration, data.impactPrefab,
+                    data.pierceCount, data.chainCount, data.chainRadius, data.chainDamageMultiplier,
+                    data.chainArcPrefab, data.slowDuration, data.slowMultiplier,
+                    data.burnDamagePerSecond, data.burnDuration, data.projectileIsArrow);
+
+            PlayShotSound();
+
+            // Отдача: оружие дёргается назад и плавно возвращается (RecoverRecoil).
+            if (weaponPivot != null)
+            {
+                if (recoil <= 0f) pivotBasePosition = weaponPivot.position;
+                recoil = 1f;
+                recoilOffset = -(target.transform.position - spawnPos).normalized * 0.08f;
+            }
 
             if (weaponAnimator == null || weaponAnimator.runtimeAnimatorController == null) return;
             Vector3 dir = target.transform.position - spawnPos;
@@ -177,6 +275,17 @@ namespace TowerDefense
                 weaponAnimator.Play("S_Attack");
                 weaponRenderer.flipX = dir.x > 0;
             }
+        }
+
+        private void PlayShotSound()
+        {
+            if (data == null) return;
+            if (data.splashRadius > 0f) GameSfx.Play(GameSfx.Event.CannonShot, transform.position);
+            else if (data.chainCount > 0) GameSfx.Play(GameSfx.Event.LightningShot, transform.position);
+            else if (data.burnDamagePerSecond > 0f) GameSfx.Play(GameSfx.Event.BurnShot, transform.position);
+            else if (data.slowDuration > 0f) GameSfx.Play(GameSfx.Event.IceShot, transform.position);
+            else if (data.damageOverTimePerSecond > 0f) GameSfx.Play(GameSfx.Event.PoisonShot, transform.position);
+            else if (data.projectileIsArrow) GameSfx.Play(data.pierceCount > 0 ? GameSfx.Event.BallistaShot : GameSfx.Event.ArrowShot, transform.position);
         }
 
         private void OnDrawGizmosSelected()
