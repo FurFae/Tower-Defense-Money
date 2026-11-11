@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -53,11 +53,19 @@ namespace YG.EditorScr
                 if (loadCount < 4)
                 {
                     string fileContent = null;
+                    string fetchFailure = null;
+                    async Task<string> Fetch(string url)
+                    {
+                        try { return await ReadFileFromURL(url); }
+                        catch (HttpRequestException ex) { fetchFailure = ex.Message; }
+                        catch (TaskCanceledException) { fetchFailure = "Request timed out"; }
+                        return null;
+                    }
                     bool useTestUrl = !string.IsNullOrWhiteSpace(TEST_URL);
 
                     if (useTestUrl)
                     {
-                        fileContent = await ReadFileFromURL(TEST_URL);
+                        fileContent = await Fetch(TEST_URL);
                     }
                     else
                     {
@@ -65,7 +73,7 @@ namespace YG.EditorScr
 
                         for (int redirectStep = 0; redirectStep <= MAX_REDIRECTS; redirectStep++)
                         {
-                            fileContent = await ReadFileFromURL(currentUrl);
+                            fileContent = await Fetch(currentUrl);
 
                             if (string.IsNullOrEmpty(fileContent))
                             {
@@ -124,11 +132,13 @@ namespace YG.EditorScr
                     }
                     else
                     {
-#if RU_YG2
-                        Debug.LogError($"Информация для {InfoYG.NAME_PLUGIN} не была загружена из-за отсутствия Интернета или неверного URL-адреса.");
-#else
-                        Debug.LogError($"The information for the {InfoYG.NAME_PLUGIN} was not uploaded due to a lack of Internet or an incorrect URL.");
-#endif
+                        ServerInfo.Read();
+                        hasServerInfoForNotifications = HasServerInfoForNotifications();
+                        string reason = fetchFailure ?? "No usable catalog returned";
+                        if (hasServerInfoForNotifications)
+                            Debug.LogWarning($"PluginYG2: using the local module catalog. Online update check failed ({reason}).");
+                        else
+                            Debug.LogError($"PluginYG2: no local module catalog is available and the online update check failed ({reason}).");
                     }
                 }
             }
@@ -157,25 +167,13 @@ namespace YG.EditorScr
         {
             using (HttpClient client = new HttpClient())
             {
-                try
+                using (HttpResponseMessage response = await client.GetAsync(url))
                 {
-                    HttpResponseMessage response = await client.GetAsync(url);
                     response.EnsureSuccessStatusCode();
                     return await response.Content.ReadAsStringAsync();
                 }
-                catch (HttpRequestException ex)
-                {
-                    Debug.LogError($"Server info request failed: {ex.Message}");
-                    return null;
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"Server info request error: {ex.Message}");
-                    return null;
-                }
             }
         }
-
         private static bool TryParseServerJson(string json, out ServerJson cloud)
         {
             cloud = null;

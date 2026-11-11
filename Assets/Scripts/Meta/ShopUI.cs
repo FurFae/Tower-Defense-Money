@@ -9,7 +9,7 @@ namespace TowerDefense
     // Added by RetentionUI, which owns the canvas.
     public class ShopUI : MonoBehaviour
     {
-        private static readonly string[] TabNames = { "Чертежи", "Сундуки", "Обмен", "Кристаллы" };
+        private static readonly string[] TabNames = { "Чертежи", "Сундуки", "Кристаллы → монеты" };
 
         private GameObject openButton;
         private GameObject panel;
@@ -76,7 +76,7 @@ namespace TowerDefense
         {
             Button open = RuntimeUI.CreateButton(transform, "ShopButton", "Магазин", 30, out _);
             RuntimeUI.StyleMenuButton(open);
-            RuntimeUI.Place(open.transform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(20f, -80f), new Vector2(200f, 70f));
+            RuntimeUI.Place(open.transform, Vector2.zero, Vector2.zero, new Vector2(464f, 48f), new Vector2(180f, 64f));
             open.onClick.AddListener(Toggle);
             openButton = open.gameObject;
 
@@ -87,7 +87,7 @@ namespace TowerDefense
             {
                 int index = i;
                 Button tab = RuntimeUI.CreateButton(tabRow, "Tab", TabNames[i], 26, out _);
-                RuntimeUI.SetAnchors((RectTransform)tab.transform, i * 0.25f + 0.004f, (i + 1) * 0.25f - 0.004f);
+                RuntimeUI.SetAnchors((RectTransform)tab.transform, i / (float)TabNames.Length + 0.004f, (i + 1) / (float)TabNames.Length - 0.004f);
                 tab.onClick.AddListener(() => SelectTab(index));
                 tabButtons.Add(tab);
             }
@@ -96,7 +96,7 @@ namespace TowerDefense
             BuildOffers(CreateTab(w), y);
             BuildChests(CreateTab(w), y);
             BuildExchange(CreateTab(w), y);
-            BuildCrystals(CreateTab(w), y);
+
         }
 
         private Transform CreateTab(Transform window)
@@ -119,7 +119,7 @@ namespace TowerDefense
                 offerButtons.Add(button);
                 offerLabels.Add(label);
             }
-            CreateNote(tab, ref y, "Предложения обновляются каждый день.");
+            CreateNote(tab, ref y, "Цена указана за весь набор. Первый чертёж открывает башню, остальные идут на улучшения.");
         }
 
         private void BuildChests(Transform tab, float y)

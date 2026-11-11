@@ -1,9 +1,9 @@
 fileFormatVersion: 2
-guid: e8fc667e10c2c1759932907dbc498eed
+guid: 34c5a949fcbc1a8489e21045d4068f5f
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 2060958484156128658
+      213: -4100090320475745973
     second: IceTower_Impact_0
   externalObjects: {}
   serializedVersion: 13
@@ -46,7 +46,7 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 1
+  spriteMode: 2
   spriteExtrude: 1
   spriteMeshType: 1
   alignment: 0
@@ -142,10 +142,10 @@ TextureImporter:
       name: IceTower_Impact_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 64
-        height: 64
+        x: 3
+        y: 3
+        width: 58
+        height: 58
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -154,8 +154,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: b8b9659af255d2040800000000000000
-      internalID: 798525659426165076
+      spriteID: b419605a39d8917c0800000000000000
+      internalID: -4100090320475745973
       vertices: []
       indices: 
       edges: []
@@ -164,8 +164,8 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: b8b9659af255d2040800000000000000
-    internalID: 798525659426165076
+    spriteID: 
+    internalID: 0
     vertices: []
     indices: 
     edges: []
@@ -174,7 +174,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      IceTower_Impact_0: 2060958484156128658
+      IceTower_Impact_0: -4100090320475745973
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

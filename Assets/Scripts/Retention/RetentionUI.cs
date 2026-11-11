@@ -33,8 +33,8 @@ namespace TowerDefense
         private const float SaveInterval = 5f;
         private const float ToastDuration = 3f;
         private const float GoalRowHeight = 58f;
-        private static readonly Color ClaimedDayColor = new Color(0.12f, 0.08f, 0.05f, 1f);
-        private static readonly Color TodayColor = new Color(0.45f, 0.30f, 0.15f, 1f);
+        private static readonly Color ClaimedDayColor = new Color(0.055f, 0.10f, 0.09f, 1f);
+        private static readonly Color TodayColor = new Color(0.25f, 0.36f, 0.25f, 1f);
         private static readonly Color ClaimedTextColor = new Color(0.55f, 0.55f, 0.55f, 1f);
 
         private GameObject panel;
@@ -93,7 +93,7 @@ namespace TowerDefense
             EnsureEventSystem();
             SelectTab(0);
             // The session starts with the daily reward.
-            panel.SetActive(RetentionSystem.CanClaimDaily);
+            panel.SetActive(false);
         }
 
         private void OnDestroy()
@@ -132,6 +132,8 @@ namespace TowerDefense
 
         private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
         {
+            if (toastRoutine != null) StopCoroutine(toastRoutine);
+            toast.SetActive(false);
             RetentionSystem.Flush();
             EnsureEventSystem();
             Refresh();
@@ -238,6 +240,7 @@ namespace TowerDefense
 
         private void ShowToast(string goalTitle)
         {
+            if (GameManager.Instance != null) return;
             toastText.text = $"Выполнено: {goalTitle}";
             if (toastRoutine != null) StopCoroutine(toastRoutine);
             toastRoutine = StartCoroutine(ToastRoutine());
@@ -279,7 +282,7 @@ namespace TowerDefense
             // Open button on the left edge, with a dot when something can be claimed.
             Button open = RuntimeUI.CreateButton(transform, "RewardsButton", "Задания", 30, out _);
             RuntimeUI.StyleMenuButton(open);
-            RuntimeUI.Place(open.transform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(20f, 80f), new Vector2(200f, 70f));
+            RuntimeUI.Place(open.transform, Vector2.zero, Vector2.zero, new Vector2(64f, 48f), new Vector2(180f, 64f));
             open.onClick.AddListener(Toggle);
             openButton = open.gameObject;
             badge = CreateBadge(open.transform);
@@ -331,7 +334,7 @@ namespace TowerDefense
                 Place(cell.rectTransform, left + i * width + gap / 2f, left + (i + 1) * width - gap / 2f, 0.08f, 0.68f);
                 Outline outline = cell.gameObject.AddComponent<Outline>();
                 outline.effectColor = RuntimeUI.CoinColor;
-                outline.effectDistance = new Vector2(3f, -3f);
+                outline.effectDistance = new Vector2(1f, -1f);
                 Text text = RuntimeUI.CreateText(cell.transform, "", 19, TextAnchor.MiddleCenter);
                 dayCells.Add(cell);
                 dayTexts.Add(text);
@@ -348,7 +351,7 @@ namespace TowerDefense
 
         private static GameObject CreateBadge(Transform button)
         {
-            GameObject dot = RuntimeUI.CreateImage(button, "Badge", Color.red).gameObject;
+            GameObject dot = RuntimeUI.CreateImage(button, "Badge", RuntimeUI.CoinColor).gameObject;
             RuntimeUI.Place(dot.transform, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(24f, 24f));
             return dot;
         }

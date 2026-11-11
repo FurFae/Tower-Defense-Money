@@ -17,17 +17,22 @@ namespace TowerDefense
         // The view stays where it is fully painted; found by name if not set.
         [SerializeField] private Tilemap ground;
 
+        private Transform entrance;
         private Camera cam;
         private Bounds content;
-        private Bounds limits;
-        private bool hasLimits;
+
+
         private int screenWidth;
         private int screenHeight;
 
         private void Start()
         {
             cam = GetComponent<Camera>();
+            cam.rect = new Rect(0f, 0f, 1f, 0.86f);
+            cam.backgroundColor = new Color(0.055f, 0.10f, 0.085f);
             content = ContentBounds();
+            var route = FindAnyObjectByType<PathHolder>();
+            if (route != null && route.Waypoints.Length > 0) entrance = route.Waypoints[0];
             if (ground == null)
             {
                 GameObject groundObject = GameObject.Find("Grid/Tilemap");
@@ -35,12 +40,12 @@ namespace TowerDefense
             }
             if (ground != null)
             {
-                BoundsInt cells = FilledCells(ground);
-                Vector3 min = ground.CellToWorld(cells.min);
-                Vector3 max = ground.CellToWorld(cells.max);
-                limits = new Bounds((min + max) / 2f, max - min);
-                hasLimits = cells.size.x > 0 && cells.size.y > 0;
+                var used = new TileBase[ground.GetUsedTilesCount()];
+                ground.GetUsedTilesNonAlloc(used);
+                CacheWesternTerrain(ground);
+                grass = System.Array.Find(used, tile => tile != null && tile.name == "grass_rule");
             }
+            SculptLowerWoods();
             Fit();
         }
 
@@ -50,39 +55,64 @@ namespace TowerDefense
             if (Screen.width != screenWidth || Screen.height != screenHeight) Fit();
         }
 
-        // Largest box without holes: the map's edges are ragged, so edge rows and columns
-        // with a missing tile are trimmed until every side is fully painted.
-        private static BoundsInt FilledCells(Tilemap tilemap)
+        // Remember the painted silhouette before filling any camera margins.
+        private readonly System.Collections.Generic.Dictionary<int, (int x, TileBase tile)> westernEdges =
+            new System.Collections.Generic.Dictionary<int, (int x, TileBase tile)>();
+
+        private void CacheWesternTerrain(Tilemap map)
         {
-            tilemap.CompressBounds();
-            BoundsInt b = tilemap.cellBounds;
-            int xMin = b.xMin, xMax = b.xMax - 1, yMin = b.yMin, yMax = b.yMax - 1;
+            BoundsInt bounds = map.cellBounds;
+            for (int y = bounds.yMin; y < bounds.yMax; y++)
+                for (int x = bounds.xMin; x < bounds.xMax; x++)
+                {
+                    var cell = new Vector3Int(x, y, 0);
+                    TileBase tile = map.GetTile(cell);
+                    if (tile == null) continue;
+                    if (tile.name == "road_rule" || tile.name == "forest_rule")
+                        westernEdges[y] = (x, tile);
+                    break;
+                }
+        }
+        private TileBase grass;
 
-            bool ColumnFull(int x)
-            {
-                for (int y = yMin; y <= yMax; y++)
-                    if (!tilemap.HasTile(new Vector3Int(x, y, 0))) return false;
-                return true;
-            }
-            bool RowFull(int y)
-            {
-                for (int x = xMin; x <= xMax; x++)
-                    if (!tilemap.HasTile(new Vector3Int(x, y, 0))) return false;
-                return true;
-            }
-
-            bool trimmed = true;
-            while (trimmed && xMin < xMax && yMin < yMax)
-            {
-                trimmed = false;
-                if (!ColumnFull(xMin)) { xMin++; trimmed = true; }
-                if (!ColumnFull(xMax)) { xMax--; trimmed = true; }
-                if (!RowFull(yMin)) { yMin++; trimmed = true; }
-                if (!RowFull(yMax)) { yMax--; trimmed = true; }
-            }
-            return new BoundsInt(xMin, yMin, 0, xMax - xMin + 1, yMax - yMin + 1, 1);
+        // Grass clearings cut into the lower canopy, including the new build site.
+        private static bool Clearing(int x, int y)
+        {
+            float dx = (x + 0.5f + 25f) / 4.3f, dy = (y + 0.5f + 7.3f) / 2.8f;
+            float u = (x + 0.5f + 16f) / 3.4f, v = (y + 0.5f + 13.8f) / 2.1f;
+            float rim = -8.3f + 1.35f * Mathf.Sin(x * .46f) + .65f * Mathf.Sin(x * .9f);
+            return dx*dx + dy*dy < 1f || u*u + v*v < 1f || y >= rim;
         }
 
+        private void SculptLowerWoods()
+        {
+            if (ground == null || grass == null) return;
+            foreach (var cell in ground.cellBounds.allPositionsWithin)
+            {
+                var tile = ground.GetTile(cell);
+                if (cell.y < -5 && tile != null && tile.name == "forest_rule" && Clearing(cell.x, cell.y))
+                    ground.SetTile(cell, grass);
+            }
+        }
+
+        private void FillVisibleGround()
+        {
+            if (ground == null || grass == null) return;
+            float depth = ground.transform.position.z - cam.transform.position.z;
+            Vector3Int min = ground.WorldToCell(cam.ViewportToWorldPoint(new Vector3(0, 0, depth)));
+            Vector3Int max = ground.WorldToCell(cam.ViewportToWorldPoint(new Vector3(1, 1, depth)));
+            // Include a border so the RuleTile's outer transition lies beyond the camera.
+            for (int y = min.y - 2; y <= max.y + 2; y++)
+                for (int x = min.x - 2; x <= max.x + 2; x++)
+                {
+                    var cell = new Vector3Int(x, y, 0);
+                    if (ground.HasTile(cell)) continue;
+                    TileBase fill = grass;
+                    if (westernEdges.TryGetValue(y, out var edge) && x < edge.x)
+                        fill = edge.tile.name == "forest_rule" && Clearing(x, y) ? grass : edge.tile;
+                    ground.SetTile(cell, fill);
+                }
+        }
         private Bounds ContentBounds()
         {
             bool any = false;
@@ -99,7 +129,13 @@ namespace TowerDefense
                 foreach (Transform waypoint in path.Waypoints)
                     Add(waypoint.position);
             foreach (TowerSlot slot in FindObjectsByType<TowerSlot>(FindObjectsSortMode.None))
+            {
                 Add(slot.transform.position);
+                if (slot.TryGetComponent<SpriteRenderer>(out var marker))
+                {
+                    Add(marker.bounds.min); Add(marker.bounds.max);
+                }
+            }
             foreach (Transform point in extraPoints)
                 if (point != null) Add(point.position);
             return bounds;
@@ -116,17 +152,15 @@ namespace TowerDefense
             float halfHeight = Mathf.Max(size.y / 2f, size.x / 2f / cam.aspect);
             Vector2 center = (min + max) / 2f;
 
-            if (hasLimits)
-            {
-                // Shrink to the ground if it is smaller than the view, then slide inside it.
-                halfHeight = Mathf.Min(halfHeight, limits.extents.y, limits.extents.x / cam.aspect);
-                float halfWidth = halfHeight * cam.aspect;
-                center.x = Mathf.Clamp(center.x, limits.min.x + halfWidth, limits.max.x - halfWidth);
-                center.y = Mathf.Clamp(center.y, limits.min.y + halfHeight, limits.max.y - halfHeight);
-            }
-
             cam.orthographicSize = halfHeight;
             transform.position = new Vector3(center.x, center.y, transform.position.z);
+            if (entrance != null)
+            {
+                Vector3 pos = entrance.position;
+                pos.x = center.x - halfHeight * cam.aspect - 1.3f;
+                entrance.position = pos;
+            }
+            FillVisibleGround();
         }
     }
 }

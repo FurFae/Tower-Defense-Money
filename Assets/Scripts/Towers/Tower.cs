@@ -28,7 +28,7 @@ namespace TowerDefense
         // In-battle upgrades bought with mana; they last until the end of the level.
         public const int MaxBattleTier = 2;
         private const float SellRefund = 0.7f; // доля вложенной маны при продаже
-        private static readonly float[] TierCostMultipliers = { 1.5f, 3f };
+        private static readonly float[] TierCostMultipliers = { 0.75f, 1.25f };
         private const float DamagePerTier = 0.4f;
         private const float RangePerTier = 0.4f;
 
@@ -126,6 +126,19 @@ namespace TowerDefense
             cooldown = 0f;
         }
 
+        public void AlignFootprint(Bounds site)
+        {
+            if (baseRenderer == null || baseRenderer.sprite == null || site.size.x <= 0) return;
+            float width = baseRenderer.bounds.size.x;
+            if (width <= 0) return;
+            transform.localScale *= site.size.x / width;
+            var art = baseRenderer.bounds;
+            Vector3 foot = new Vector3(art.center.x, art.min.y + art.size.y * 0.22f, site.center.z);
+            Vector3 shift = site.center - foot;
+            baseRenderer.transform.position += shift;
+            if (weaponPivot != null && !weaponPivot.IsChildOf(baseRenderer.transform))
+                weaponPivot.position += shift;
+        }
         private static T ForLevel<T>(T[] perLevel, int level, out int artLevel) where T : Object
         {
             for (int i = Mathf.Min(level, perLevel?.Length ?? 0) - 1; i >= 0; i--)
@@ -194,7 +207,7 @@ namespace TowerDefense
 
             foreach (Enemy enemy in Enemy.Active)
             {
-                if (enemy == null) continue;
+                if (enemy == null || enemy.IsDead) continue;
                 if (unpoisonedOnly && enemy.IsPoisoned) continue;
                 if (enemy.IsFlying && !data.canHitFlying) continue;
                 float dist = Vector3.Distance(origin, enemy.transform.position);
@@ -249,10 +262,10 @@ namespace TowerDefense
             if (projectile != null)
                 projectile.Initialize(target, Damage, data.projectileSpeed,
                     data.splashRadius, data.splashDamageMultiplier,
-                    data.damageOverTimePerSecond, data.damageOverTimeDuration, data.impactPrefab,
+                    data.damageOverTimePerSecond * (Damage / data.damage), data.damageOverTimeDuration, data.impactPrefab,
                     data.pierceCount, data.chainCount, data.chainRadius, data.chainDamageMultiplier,
                     data.chainArcPrefab, data.slowDuration, data.slowMultiplier,
-                    data.burnDamagePerSecond, data.burnDuration, data.projectileIsArrow);
+                    data.burnDamagePerSecond * (Damage / data.damage), data.burnDuration, data.projectileIsArrow);
 
             PlayShotSound();
 

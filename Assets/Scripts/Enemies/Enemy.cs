@@ -20,12 +20,14 @@ namespace TowerDefense
         public bool IsBurned => burnRemaining > 0f;
         public bool IsFlying => Data != null && Data.isFlying;
         public bool IsBoss => Data != null && Data.isBoss;
+        public bool IsDead => isDead;
+        public int NextWaypointIndex => waypointIndex;
         public float CurrentHealth => currentHealth;
         public float MaxHealth => maxHealth;
         public float MoveSpeed => Data != null ? Data.moveSpeed : 0f;
 
         // Raised when a splitting enemy dies; the spawner instantiates the copies.
-        public static event Action<EnemyData, Vector3> OnSplitRequest;
+        public static event Action<Enemy> OnSplitRequest;
         // Raised on every damage/heal so status icons and HP bars stay fresh.
         public event Action OnStateChanged;
 
@@ -112,12 +114,20 @@ namespace TowerDefense
             UpdateHealthBar();
         }
 
+        public void ResumePath(int nextWaypoint, float distance)
+        {
+            waypointIndex = Mathf.Clamp(nextWaypoint, 0, waypoints.Length - 1);
+            DistanceTraveled = distance;
+        }
+
         private void Update()
         {
             if (isDead) return;
             if (GameManager.Instance != null && GameManager.Instance.IsGameOver) return;
             UpdatePoison();
+            if (isDead) return;
             UpdateBurn();
+            if (isDead) return;
             UpdateSlow();
             UpdateCleanse();
             UpdateHealAura();
@@ -347,7 +357,7 @@ namespace TowerDefense
                 GameManager.Instance.AddCurrency(Data.currencyReward);
             RetentionSystem.Report(RetentionStat.Kills);
             if (Data != null && Data.splitCount > 0 && Data.splitInto != null)
-                OnSplitRequest?.Invoke(Data.splitInto, transform.position);
+                OnSplitRequest?.Invoke(this);
             GameSfx.Play(IsBoss ? GameSfx.Event.BossDeath : GameSfx.Event.EnemyDeath, transform.position);
             OnDeath?.Invoke(this);
             Destroy(gameObject);

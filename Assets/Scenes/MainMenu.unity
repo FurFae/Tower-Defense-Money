@@ -247,8 +247,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIAudio
   source: {fileID: 129618736}
-  click: {fileID: 8300000, guid: 02797df624c05ef4a871bc47d2ea3530, type: 3}
-  hover: {fileID: 8300000, guid: a1d9ed07d0c90484b900ce52bd6c4f39, type: 3}
+  click: {fileID: 8300000, guid: cbfd4433782c0574431b04591babb046, type: 3}
+  hover: {fileID: 8300000, guid: e28f5fe934760262c941fd3836230276, type: 3}
 --- !u!4 &129618738
 Transform:
   m_ObjectHideFlags: 0

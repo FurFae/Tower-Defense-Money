@@ -39,6 +39,7 @@ namespace TowerDefense
             GameObject arcPrefab = null, float freezeDuration = 0f, float freezeMultiplier = 1f,
             float firePerSecond = 0f, float fireDuration = 0f, bool arrow = false)
         {
+            lifetime = 0f;
             isArrowShot = arrow;
             target = targetEnemy;
             damage = dmg;
@@ -64,6 +65,7 @@ namespace TowerDefense
 
         private void Update()
         {
+            if (GameManager.Instance != null && GameManager.Instance.IsPaused) return;
             lifetime += Time.deltaTime;
             if (lifetime >= maxLifetime
                 || (GameManager.Instance != null && GameManager.Instance.IsGameOver))
@@ -117,7 +119,7 @@ namespace TowerDefense
 
             foreach (Enemy enemy in Enemy.Active)
             {
-                if (enemy == null || hitTargets.Contains(enemy)) continue;
+                if (enemy == null || enemy.IsDead || hitTargets.Contains(enemy)) continue;
                 if (Vector3.Distance(enemy.transform.position, transform.position) > pierceHitDistance) continue;
 
                 HitTarget(enemy);
@@ -173,9 +175,9 @@ namespace TowerDefense
         private void Splash(Enemy enemy)
         {
             GameSfx.Play(GameSfx.Event.Explosion, enemy.transform.position);
-            foreach (Enemy other in Enemy.Active)
+            foreach (Enemy other in new List<Enemy>(Enemy.Active))
             {
-                if (other == null || other == enemy || hitTargets.Contains(other)) continue;
+                if (other == null || other.IsDead || other == enemy || hitTargets.Contains(other)) continue;
                 if (other.IsFlying) continue; // наземный взрыв не задевает летающих
                 if (Vector3.Distance(other.transform.position, enemy.transform.position) <= splashRadius)
                     other.TakeDamage(damage * splashDamageMultiplier);
@@ -205,7 +207,7 @@ namespace TowerDefense
             float bestDistance = chainRadius;
             foreach (Enemy enemy in Enemy.Active)
             {
-                if (enemy == null || hitTargets.Contains(enemy)) continue;
+                if (enemy == null || enemy.IsDead || hitTargets.Contains(enemy)) continue;
                 float distance = Vector3.Distance(enemy.transform.position, origin);
                 if (distance <= bestDistance)
                 {

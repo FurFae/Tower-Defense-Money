@@ -34,14 +34,14 @@ namespace TowerDefense
     }
 
     // The campaign. One painted scene; MapLayouts turns it into three different maps
-    // (mirrored/offset routes, pruned build slots, per-level enemy mixes, level-3 boss).
+    // (pruned build slots, per-level enemy mixes, level-3 boss).
     public static class Levels
     {
         public static readonly LevelDefinition[] All =
         {
             new LevelDefinition(1, "Лесная опушка", "game_scene", 1f, 1f, 0),
-            new LevelDefinition(2, "Тёмная чаща", "game_scene", 1.4f, 1.3f, 1),
-            new LevelDefinition(3, "Осада замка", "game_scene", 1.9f, 1.6f, 2),
+            new LevelDefinition(2, "Тёмная чаща", "game_scene", 1.25f, 1.15f, 1),
+            new LevelDefinition(3, "Осада замка", "game_scene", 1.5f, 1.3f, 2),
         };
 
         // Челлендж, выбранный в окне выбора уровня; действует на следующий запуск.

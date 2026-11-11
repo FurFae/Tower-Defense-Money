@@ -9,11 +9,11 @@ namespace TowerDefense
     // so the rarity and currency colors read the same either way.
     public static class RuntimeUI
     {
-        public static readonly Color PanelColor = new Color(0.17f, 0.11f, 0.06f, 0.92f);
-        public static readonly Color RowColor = new Color(0.29f, 0.19f, 0.11f, 1f);
-        public static readonly Color BarColor = new Color(0.09f, 0.05f, 0.03f, 1f);
-        public static readonly Color AccentColor = new Color(0.20f, 0.75f, 0.50f, 1f);
-        public static readonly Color DisabledColor = new Color(0.30f, 0.33f, 0.40f, 1f);
+        public static readonly Color PanelColor = new Color(0.055f, 0.10f, 0.09f, 0.98f);
+        public static readonly Color RowColor = new Color(0.105f, 0.17f, 0.15f, 1f);
+        public static readonly Color BarColor = new Color(0.035f, 0.065f, 0.06f, 1f);
+        public static readonly Color AccentColor = new Color(0.20f, 0.39f, 0.30f, 1f);
+        public static readonly Color DisabledColor = new Color(0.14f, 0.19f, 0.17f, 1f);
         public static readonly Color CoinColor = new Color(1f, 0.83f, 0.30f, 1f);
         // Tints for the skinned button sprite.
         private static readonly Color SkinnedDisabled = new Color(0.45f, 0.45f, 0.45f, 1f);
@@ -40,14 +40,17 @@ namespace TowerDefense
             get
             {
                 if (font == null)
-                    font = Skin != null && Skin.font != null ? Skin.font : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                {
+                    font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                    if (font.material.mainTexture != null) font.material.mainTexture.filterMode = FilterMode.Bilinear;
+                }
                 return font;
             }
         }
 
         private static UISkin Skin => UISkin.Current;
 
-        private static bool SkinnedButtons => Skin != null && Skin.button != null;
+        private static bool SkinnedButtons => false;
 
         public static string CoinsText(int amount) => $"{CoinTag}{amount} монет</color>";
 
@@ -70,47 +73,62 @@ namespace TowerDefense
         public static Transform CreateWindow(Transform canvas, string title, float height,
             out GameObject panel, out Text wallet, out float y)
         {
-            // The dim blocks clicks to the game and closes the window.
-            Image dim = CreateImage(canvas, title, new Color(0f, 0f, 0f, 0.6f));
+            Image dim = CreateImage(canvas, title, new Color(0.015f, 0.025f, 0.025f, 0.8f));
             dim.raycastTarget = true;
             Stretch(dim.rectTransform);
             GameObject panelObject = dim.gameObject;
             panelObject.AddComponent<Button>().onClick.AddListener(() => panelObject.SetActive(false));
-
-            Image window = CreateImage(panelObject.transform, "Window", PanelColor);
+            Image window = CreateImage(dim.transform, "Window", PanelColor);
             window.raycastTarget = true;
-            Place(window.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1000f, height));
-            if (Skin != null && Skin.windowFrame != null)
-            {
-                window.sprite = Skin.windowFrame;
-                window.type = Image.Type.Sliced;
-                window.pixelsPerUnitMultiplier = Skin.framePixelsPerUnitMultiplier;
-                window.color = Color.white;
-                Image inner = CreateImage(window.transform, "Inner", PanelColor);
-                Stretch(inner.rectTransform);
-                inner.rectTransform.offsetMin = new Vector2(FrameInset, FrameInset);
-                inner.rectTransform.offsetMax = new Vector2(-FrameInset, -FrameInset);
-            }
-
-            y = 20f;
-            Transform header = TopRow(window.transform, ref y, 60f);
-            Text titleText = CreateText(header, title, 38, TextAnchor.MiddleLeft);
-            titleText.fontStyle = FontStyle.Bold;
-            wallet = CreateText(header, "", 26, TextAnchor.MiddleRight);
-            SetAnchors(wallet.rectTransform, 0.4f, 0.9f);
-
-            Button close = CreateButton(window.transform, "CloseButton", "X", 30, out _);
-            if (!SkinnedButtons) close.image.color = DisabledColor;
-            Place(close.transform, Vector2.one, Vector2.one, new Vector2(-20f, -20f), new Vector2(60f, 60f));
+            float visibleHeight = Mathf.Min(height, 900f);
+            Place(window.transform, Vector2.one * 0.5f, Vector2.one * 0.5f, Vector2.zero, new Vector2(1100f, visibleHeight));
+            DecoratePanel(window);
+            Text heading = CreateText(window.transform, title, 36, TextAnchor.MiddleLeft);
+            heading.fontStyle = FontStyle.Bold;
+            Place(heading.transform, new Vector2(0, 1), new Vector2(0, 1), new Vector2(32, -22), new Vector2(900, 48));
+            wallet = CreateText(window.transform, "", 24, TextAnchor.MiddleLeft);
+            wallet.color = new Color(0.65f, 0.75f, 0.69f);
+            Place(wallet.transform, new Vector2(0, 1), new Vector2(0, 1), new Vector2(32, -72), new Vector2(940, 32));
+            Button close = CreateButton(window.transform, "CloseButton", "×", 34, out _);
+            StyleMenuButton(close);
+            Place(close.transform, Vector2.one, Vector2.one, new Vector2(-24, -24), new Vector2(56, 56));
             close.onClick.AddListener(() => panelObject.SetActive(false));
 
-            y += 10f;
+            Image viewport = CreateImage(window.transform, "Viewport", Color.clear);
+            viewport.raycastTarget = true;
+            Stretch(viewport.rectTransform);
+            viewport.rectTransform.offsetMin = new Vector2(16, 24);
+            viewport.rectTransform.offsetMax = new Vector2(-16, -120);
+            viewport.gameObject.AddComponent<RectMask2D>();
+            RectTransform content = new GameObject("Content", typeof(RectTransform)).GetComponent<RectTransform>();
+            content.SetParent(viewport.transform, false);
+            content.anchorMin = new Vector2(0, 1); content.anchorMax = Vector2.one;
+            content.pivot = new Vector2(0.5f, 1);
+            content.sizeDelta = new Vector2(0, height - 110);
+            content.anchoredPosition = Vector2.zero;
+            ScrollRect scroll = viewport.gameObject.AddComponent<ScrollRect>();
+            scroll.viewport = viewport.rectTransform; scroll.content = content;
+            scroll.horizontal = false; scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = 45;
+            y = 0;
             windows.Add(panelObject);
             panelObject.SetActive(false);
             panel = panelObject;
-            return window.transform;
+            return content;
         }
 
+        public static void DecoratePanel(Image panel)
+        {
+            panel.sprite = null;
+            panel.color = PanelColor;
+            Outline border = panel.gameObject.GetComponent<Outline>() ?? panel.gameObject.AddComponent<Outline>();
+            border.effectColor = new Color(0.55f, 0.47f, 0.29f, 0.65f);
+            border.effectDistance = new Vector2(1, -1);
+            Shadow shadow = panel.gameObject.GetComponent<Shadow>() ?? panel.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0, 0, 0, 0.3f);
+            shadow.effectDistance = new Vector2(0, -5);
+        }
         public static Text CreateHeader(Transform window, ref float y, string text)
         {
             y += 10f;
@@ -156,12 +174,12 @@ namespace TowerDefense
             text.font = Font;
             text.fontSize = size;
             text.alignment = alignment;
-            text.color = Color.white;
+            text.color = new Color(0.93f, 0.93f, 0.85f);
             text.text = content;
             text.supportRichText = true;
             text.raycastTarget = false;
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Overflow;
+            text.verticalOverflow = VerticalWrapMode.Truncate;
             Stretch(text.rectTransform);
             return text;
         }
@@ -173,9 +191,19 @@ namespace TowerDefense
             if (SkinnedButtons) image.sprite = Skin.button;
             Button button = image.gameObject.AddComponent<Button>();
             button.targetGraphic = image;
-            button.transition = Selectable.Transition.None;
+            button.transition = Selectable.Transition.ColorTint;
+            ColorBlock colors = button.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = new Color(1.18f, 1.18f, 1.12f);
+            colors.pressedColor = new Color(0.75f, 0.85f, 0.75f);
+            colors.disabledColor = new Color(0.6f, 0.65f, 0.6f);
+            colors.fadeDuration = 0.12f;
+            button.colors = colors;
+            Navigation navigation = button.navigation; navigation.mode = Navigation.Mode.None; button.navigation = navigation;
             labelText = CreateText(image.transform, label, size, TextAnchor.MiddleCenter);
             if (SkinnedButtons) labelText.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.8f);
+            labelText.rectTransform.offsetMin = new Vector2(10, 5);
+            labelText.rectTransform.offsetMax = new Vector2(-10, -5);
             return button;
         }
 

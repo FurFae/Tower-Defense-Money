@@ -95,7 +95,7 @@ namespace TowerDefense
 
         // Coins for each day of the login streak; loops after the last one,
         // and the last day of the cycle also pays crystals.
-        public static readonly int[] DailyRewards = { 30, 40, 50, 60, 80, 100, 150 };
+        public static readonly int[] DailyRewards = { 20, 25, 30, 35, 40, 50, 70 };
         public const int StreakCrystals = 10;
         // Crystals for claiming every mission of the day / of the week.
         public const int AllMissionsCrystals = 5;

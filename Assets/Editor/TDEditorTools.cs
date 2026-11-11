@@ -36,10 +36,10 @@ namespace TowerDefense.EditorTools
             EnsureFolder(PrefabsFolder);
             EnsureFolder(DataFolder);
 
-            EnemyData leafbug = CreateEnemyData("Leafbug", 15f, 3.2f, 3, EnemySpriteDir + "Leafbug.png");
-            EnemyData firebug = CreateEnemyData("Firebug", 25f, 2.4f, 5, EnemySpriteDir + "Firebug.png");
-            EnemyData scorpion = CreateEnemyData("Scorpion", 45f, 1.8f, 8, EnemySpriteDir + "Scorpion.png");
-            EnemyData magmaCrab = CreateEnemyData("Magma Crab", 80f, 1.2f, 12, EnemySpriteDir + "Magma Crab.png");
+            EnemyData leafbug = CreateEnemyData("Leafbug", "Листоед", 15f, 3.2f, 3, EnemySpriteDir + "Leafbug.png");
+            EnemyData firebug = CreateEnemyData("Firebug", "Огненный жук", 25f, 2.4f, 5, EnemySpriteDir + "Firebug.png");
+            EnemyData scorpion = CreateEnemyData("Scorpion", "Скорпион", 45f, 1.8f, 8, EnemySpriteDir + "Scorpion.png");
+            EnemyData magmaCrab = CreateEnemyData("Magma Crab", "Лавовый краб", 80f, 1.2f, 12, EnemySpriteDir + "Magma Crab.png");
 
             CreateEnemyPrefab();
 
@@ -126,7 +126,7 @@ namespace TowerDefense.EditorTools
             return data;
         }
 
-        private static EnemyData CreateEnemyData(string name, float hp, float speed, int reward, string spritePath)
+        private static EnemyData CreateEnemyData(string name, string displayName, float hp, float speed, int reward, string spritePath)
         {
             string assetPath = $"{DataFolder}/Enemy_{name.Replace(" ", "")}.asset";
             EnemyData data = AssetDatabase.LoadAssetAtPath<EnemyData>(assetPath);
@@ -135,7 +135,7 @@ namespace TowerDefense.EditorTools
                 data = ScriptableObject.CreateInstance<EnemyData>();
                 AssetDatabase.CreateAsset(data, assetPath);
             }
-            data.displayName = name;
+            data.displayName = displayName;
             data.maxHealth = hp;
             data.moveSpeed = speed;
             data.currencyReward = reward;

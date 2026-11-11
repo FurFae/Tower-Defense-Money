@@ -57,14 +57,29 @@ namespace TowerDefense
             if (indicator != null) indicator.enabled = true;
         }
 
+        public string BuildRestriction(TowerData data, GameObject prefab)
+        {
+            if (data == null || prefab == null || !prefab.TryGetComponent<Tower>(out _)) return "Нет башни";
+            if (IsOccupied || !TryGetComponent<Collider2D>(out var c) || !c.enabled) return "Место занято";
+            var definition = TowerCatalog.Find(data.name);
+            if ((definition != null && !definition.playable) || !MetaProgress.IsUnlocked(data.name)) return "Не открыта";
+            if (!MetaProgress.IsInDeck(data.name)) return "Вне колоды";
+            if (Levels.ActiveChallenge == Challenge.RareOnly && definition != null && definition.rarity < Rarity.Rare)
+                return "Только редкие";
+            var game = GameManager.Instance;
+            if (game == null || game.IsGameOver || game.IsPaused) return "Бой остановлен";
+            return game.Currency < data.cost ? "Мало маны" : null;
+        }
+
         public bool Build(TowerData data, GameObject towerPrefab)
         {
-            if (IsOccupied || data == null || towerPrefab == null) return false;
-            if (GameManager.Instance == null || !GameManager.Instance.TrySpend(data.cost)) return false;
-
-            GameObject go = Instantiate(towerPrefab, transform.position, Quaternion.identity, transform);
+            if (BuildRestriction(data, towerPrefab) != null || !GameManager.Instance.TrySpend(data.cost)) return false;
+            var center = indicator != null ? indicator.bounds.center : transform.position;
+            GameObject go = Instantiate(towerPrefab, center, Quaternion.identity);
+            go.transform.SetParent(transform, true);
             placedTower = go.GetComponent<Tower>();
             placedTower.Initialize(data);
+            if (indicator != null) placedTower.AlignFootprint(indicator.bounds);
             IsOccupied = true;
             if (indicator != null) indicator.enabled = false;
             RetentionSystem.Report(RetentionStat.TowersBuilt);

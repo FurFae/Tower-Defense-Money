@@ -60,18 +60,18 @@ namespace TowerDefense
 
         public static readonly ChestDefinition[] ShopChests =
         {
-            new ChestDefinition("Сундук", 10, 30, false),
-            new ChestDefinition("Большой сундук", 30, 80, true),
+            new ChestDefinition("Сундук", 10, 20, false),
+            new ChestDefinition("Большой сундук", 30, 50, true),
         };
 
-        // Drop weights per rarity, out of 1000: 60%, 25%, 11%, 3.5%, 0.5%.
-        private static readonly int[] Weights = { 600, 250, 110, 35, 5 };
+        // Playable rewards only: 60% common, 25% uncommon, 11% rare, 4% epic.
+        private static readonly int[] Weights = { 600, 250, 110, 40, 0 };
         // Every N-th bought chest has a guaranteed rare-or-better blueprint.
-        public const int GuaranteeEvery = 10;
+        public const int GuaranteeEvery = 5;
         private const int MinCoinsPerBlueprint = 3;
         private const int MaxCoinsPerBlueprint = 6;
 
-        public static string OddsText => "Шансы: обычная 60%, необычная 25%, редкая 11%, эпическая 3,5%, легендарная 0,5%";
+        public static string OddsText => "Шансы: обычная 60%, необычная 25%, редкая 11%, эпическая 4%, легендарная 0%";
 
         public static ChestResult Open(ChestDefinition chest, bool guaranteeRare, bool save = true)
         {
@@ -118,7 +118,7 @@ namespace TowerDefense
         {
             List<TowerDefinition> pool = new List<TowerDefinition>();
             foreach (TowerDefinition tower in TowerCatalog.Towers)
-                if (tower.rarity == rarity) pool.Add(tower);
+                if (tower.playable && tower.rarity == rarity) pool.Add(tower);
             return pool[Random.Range(0, pool.Count)];
         }
     }

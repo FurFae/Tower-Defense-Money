@@ -37,7 +37,7 @@ namespace TowerDefense
             new TowerDefinition("Tower_IceTower", "Ледяная башня", Rarity.Common, 0, true),
             new TowerDefinition("Tower_CannonTower", "Пушка", Rarity.Uncommon, 1, true),
             new TowerDefinition("Tower_PoisonTower", "Ядовитая башня", Rarity.Uncommon, 2, true),
-            new TowerDefinition("Tower_LightningTower", "Башня молний", Rarity.Rare, 0, true),
+            new TowerDefinition("Tower_LightningTower", "Башня молний", Rarity.Rare, 3, true),
             new TowerDefinition("Tower_Ballista", "Баллиста", Rarity.Rare, 0, true),
             new TowerDefinition("Tower_Flamethrower", "Огнемёт", Rarity.Epic, 0, true),
             new TowerDefinition("Tower_Totem", "Тотем поддержки", Rarity.Legendary, 0, false),
@@ -49,19 +49,19 @@ namespace TowerDefense
         // Blueprints and coins needed to go from level N to N+1 (index N-1), per rarity.
         private static readonly int[][] Copies =
         {
-            new[] { 2, 4, 10, 20, 50, 100, 200 },
-            new[] { 2, 4, 8, 15, 30, 60, 100 },
-            new[] { 2, 3, 5, 10, 20, 35, 60 },
-            new[] { 1, 2, 3, 5, 10, 15, 25 },
+            new[] { 2, 4, 6, 10, 16, 24, 36 },
+            new[] { 2, 3, 5, 8, 12, 18, 26 },
+            new[] { 2, 3, 4, 6, 9, 13, 18 },
+            new[] { 1, 2, 3, 4, 6, 8, 12 },
             new[] { 1, 1, 2, 3, 4, 6, 8 },
         };
 
         private static readonly int[][] Coins =
         {
-            new[] { 20, 50, 100, 200, 400, 800, 1500 },
-            new[] { 40, 80, 150, 300, 600, 1000, 2000 },
-            new[] { 60, 120, 250, 500, 900, 1500, 3000 },
-            new[] { 100, 200, 400, 800, 1400, 2400, 4000 },
+            new[] { 40, 70, 110, 160, 230, 320, 450 },
+            new[] { 50, 90, 140, 200, 280, 390, 540 },
+            new[] { 70, 120, 180, 260, 360, 500, 700 },
+            new[] { 100, 160, 240, 340, 470, 650, 900 },
             new[] { 200, 400, 800, 1500, 2500, 4000, 6000 },
         };
 

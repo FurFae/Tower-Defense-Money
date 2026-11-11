@@ -104,7 +104,7 @@ namespace TowerDefense
         {
             Button open = RuntimeUI.CreateButton(transform, "TowersButton", "Башни", 30, out _);
             RuntimeUI.StyleMenuButton(open);
-            RuntimeUI.Place(open.transform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(20f, 0f), new Vector2(200f, 70f));
+            RuntimeUI.Place(open.transform, Vector2.zero, Vector2.zero, new Vector2(264f, 48f), new Vector2(180f, 64f));
             open.onClick.AddListener(Toggle);
             openButton = open.gameObject;
 

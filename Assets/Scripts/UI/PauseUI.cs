@@ -24,7 +24,8 @@ namespace TowerDefense
         {
             GameManager game = GameManager.Instance;
             bool inBattle = game != null && !game.IsGameOver;
-            if (pauseButton.activeSelf != inBattle) pauseButton.SetActive(inBattle);
+            bool visible = inBattle && !BuildMenuUI.IsOpen;
+            if (pauseButton.activeSelf != visible) pauseButton.SetActive(visible);
             if (!inBattle)
             {
                 if (panel.activeSelf) panel.SetActive(false);
@@ -58,9 +59,9 @@ namespace TowerDefense
 
         private void Build()
         {
-            Button open = RuntimeUI.CreateButton(transform, "PauseButton", "II", 36, out _);
+            Button open = RuntimeUI.CreateButton(transform, "PauseButton", "Пауза", 26, out _);
             RuntimeUI.StyleMenuButton(open);
-            RuntimeUI.Place(open.transform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -20f), new Vector2(110f, 80f));
+            RuntimeUI.Place(open.transform, Vector2.one, Vector2.one, new Vector2(-24f, -24f), new Vector2(140f, 64f));
             open.onClick.AddListener(() => SetPaused(true));
             pauseButton = open.gameObject;
 

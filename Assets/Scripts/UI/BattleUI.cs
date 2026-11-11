@@ -66,7 +66,8 @@ namespace TowerDefense
         {
             GameManager game = GameManager.Instance;
             bool inBattle = game != null && !game.IsGameOver;
-            if (repairObject.activeSelf != inBattle) repairObject.SetActive(inBattle);
+            bool showRepair = inBattle && !BuildMenuUI.IsOpen && game.Lives < game.MaxLives && Levels.ActiveChallenge != Challenge.NoRepair;
+            if (repairObject.activeSelf != showRepair) repairObject.SetActive(showRepair);
             if (!inBattle)
             {
                 if (blocker.activeSelf) Close();
@@ -166,7 +167,9 @@ namespace TowerDefense
         private void Build()
         {
             Button repair = RuntimeUI.CreateButton(transform, "RepairButton", "", 24, out repairLabel);
-            RuntimeUI.Place(repair.transform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(30f, -170f), new Vector2(280f, 70f));
+            var repairRect = (RectTransform)repair.transform;
+            repairRect.anchorMin = new Vector2(0.54f, 0.875f); repairRect.anchorMax = new Vector2(0.66f, 0.985f);
+            repairRect.offsetMin = repairRect.offsetMax = Vector2.zero;
             repair.onClick.AddListener(() => GameManager.Instance?.TryRepair());
             repairButton = repair;
             repairObject = repair.gameObject;
@@ -181,20 +184,8 @@ namespace TowerDefense
             Image panel = RuntimeUI.CreateImage(blocker.transform, "TowerPopup", RuntimeUI.PanelColor);
             panel.raycastTarget = true;
             popup = panel.rectTransform;
-            RuntimeUI.Place(popup, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(480f, 400f));
-            UISkin skin = UISkin.Current;
-            if (skin != null && skin.windowFrame != null)
-            {
-                panel.sprite = skin.windowFrame;
-                panel.type = Image.Type.Sliced;
-                panel.pixelsPerUnitMultiplier = skin.framePixelsPerUnitMultiplier;
-                panel.color = Color.white;
-                Image inner = RuntimeUI.CreateImage(popup, "Inner", RuntimeUI.PanelColor);
-                RuntimeUI.Stretch(inner.rectTransform);
-                inner.rectTransform.offsetMin = new Vector2(12f, 12f);
-                inner.rectTransform.offsetMax = new Vector2(-12f, -12f);
-            }
-
+            RuntimeUI.Place(popup, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560f, 490f));
+            RuntimeUI.DecoratePanel(panel);
             float y = 20f;
             towerTitle = RuntimeUI.CreateText(RuntimeUI.TopRow(popup, ref y, 44f), "", 26, TextAnchor.MiddleCenter);
             towerStats = RuntimeUI.CreateText(RuntimeUI.TopRow(popup, ref y, 70f), "", 24, TextAnchor.MiddleCenter);

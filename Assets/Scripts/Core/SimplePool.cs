@@ -3,62 +3,52 @@ using UnityEngine;
 
 namespace TowerDefense
 {
-    // Minimal object pool keyed by prefab instance ID. Projectiles are spawned in the
-    // dozens per second at ×2 speed; pooling removes the GC spikes from Instantiate/Destroy.
+    // Inactive objects persist; checked-out projectiles belong to the current scene.
     public static class SimplePool
     {
         private static readonly Dictionary<int, Stack<GameObject>> pools = new Dictionary<int, Stack<GameObject>>();
+        private static readonly Dictionary<int, int> owners = new Dictionary<int, int>();
+        private static readonly HashSet<int> pooled = new HashSet<int>();
+        private static Transform root;
 
         public static GameObject Get(GameObject prefab, Vector3 position, Quaternion rotation)
         {
             if (prefab == null) return null;
-            int key = Key(prefab.name);
-            if (pools.TryGetValue(key, out Stack<GameObject> stack) && stack.Count > 0)
-            {
-                GameObject item = stack.Pop();
-                if (item != null)
+            int key = prefab.GetInstanceID();
+            if (pools.TryGetValue(key, out var stack))
+                while (stack.Count > 0)
                 {
+                    GameObject item = stack.Pop();
+                    if (item == null) continue;
+                    pooled.Remove(item.GetInstanceID());
+                    item.transform.SetParent(null, true);
+                    UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(item,
+                        UnityEngine.SceneManagement.SceneManager.GetActiveScene());
                     item.transform.SetPositionAndRotation(position, rotation);
                     item.SetActive(true);
                     return item;
                 }
-            }
-            return Object.Instantiate(prefab, position, rotation);
+            GameObject created = Object.Instantiate(prefab, position, rotation);
+            owners[created.GetInstanceID()] = key;
+            return created;
         }
 
         public static void Release(GameObject item)
         {
             if (item == null) return;
+            int id = item.GetInstanceID();
+            if (!owners.TryGetValue(id, out int key)) { Object.Destroy(item); return; }
+            if (!pooled.Add(id)) return;
             item.SetActive(false);
-            if (item.transform.parent == null || item.transform.parent.name != PoolRootName)
-                item.transform.SetParent(Root(), false);
-            // Key by the source prefab name; clones carry a " (Clone)" suffix.
-            string name = item.name;
-            const string cloneSuffix = " (Clone)";
-            if (name.EndsWith(cloneSuffix)) name = name.Substring(0, name.Length - cloneSuffix.Length);
-            int key = Key(name);
-            if (!pools.TryGetValue(key, out Stack<GameObject> stack))
-            {
-                stack = new Stack<GameObject>();
-                pools[key] = stack;
-            }
-            stack.Push(item);
-        }
-
-        private static int Key(string prefabName) => prefabName.GetHashCode();
-
-        private const string PoolRootName = "__Pool";
-        private static Transform root;
-
-        private static Transform Root()
-        {
             if (root == null)
             {
-                GameObject go = new GameObject(PoolRootName);
-                Object.DontDestroyOnLoad(go);
-                root = go.transform;
+                GameObject container = new GameObject("__Pool");
+                Object.DontDestroyOnLoad(container);
+                root = container.transform;
             }
-            return root;
+            item.transform.SetParent(root, false);
+            if (!pools.TryGetValue(key, out var stack)) pools[key] = stack = new Stack<GameObject>();
+            stack.Push(item);
         }
     }
 }

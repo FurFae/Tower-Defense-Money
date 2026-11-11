@@ -51,10 +51,12 @@ namespace TowerDefense
             foreach (Row row in rows)
             {
                 LevelDefinition level = row.level;
-                bool unlocked = Levels.IsUnlocked(level);
+                bool suitableDeck = Levels.ActiveChallenge != Challenge.RareOnly || MetaProgress.Data.deck.Exists(id =>
+                    TowerCatalog.Find(id) != null && TowerCatalog.Find(id).playable && TowerCatalog.Find(id).rarity >= Rarity.Rare);
+                bool unlocked = Levels.IsUnlocked(level) && suitableDeck;
                 int stars = MetaProgress.GetLevelStars(level.number);
 
-                string details = !unlocked ? $"Откроется после уровня {level.number - 1}"
+                string details = !suitableDeck ? "Добавьте редкую башню в колоду" : !unlocked ? $"Откроется после уровня {level.number - 1}"
                     : stars > 0 ? $"Лучший результат: {stars} из 3 звёзд" : "Ещё не пройден";
                 row.title.text = $"<b>{level.number}. {level.title}</b>\n<size=22>{details}</size>";
                 row.buttonLabel.text = unlocked ? "Играть" : "Закрыт";

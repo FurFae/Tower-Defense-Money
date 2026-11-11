@@ -20,7 +20,7 @@ namespace TowerDefense
         public static readonly int[][] Exchanges =
         {
             new[] { 10, 100 },
-            new[] { 50, 600 },
+            new[] { 50, 500 },
         };
 
         // { crystals, price in Yandex "yans" }
@@ -64,7 +64,7 @@ namespace TowerDefense
 
         private static BlueprintOffer CreateOffer(Rarity rarity, System.Random random)
         {
-            TowerDefinition[] pool = Array.FindAll(TowerCatalog.Towers, tower => tower.rarity == rarity);
+            TowerDefinition[] pool = Array.FindAll(TowerCatalog.Towers, tower => tower.playable && tower.rarity == rarity);
             int amount = OfferAmounts[(int)rarity];
             return new BlueprintOffer
             {

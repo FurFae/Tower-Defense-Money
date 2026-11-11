@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d6df577a2a505cc4b8b4159d4e91fddc, type: 3}
   m_Name: Enemy_Scorpion
   m_EditorClassIdentifier: Assembly-CSharp::TowerDefense.EnemyData
-  displayName: Scorpion
+  displayName: Скорпион
   maxHealth: 45
   moveSpeed: 1.8
   currencyReward: 8

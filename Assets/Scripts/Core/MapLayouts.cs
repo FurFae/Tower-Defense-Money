@@ -3,15 +3,23 @@ using UnityEngine;
 
 namespace TowerDefense
 {
-    // Three map variants from the one painted scene: the campaign repositions the path
-    // and prunes build slots per level, so routes, pressure points and slot counts differ
-    // without shipping three scenes yet. Painted maps can replace these later.
+    // Campaign variants share a painted road and keep their path aligned with it.
+    // Higher levels prune a stable selection of slots and introduce enemy roles.
+    // Dedicated map art can replace these variants later.
     public static class MapLayouts
     {
         // Какая доля слотов строительства закрыта на каждой карте.
-        private static readonly float[] SlotDisableFraction = { 0f, 0.25f, 0.4f };
+        private static readonly float[] SlotDisableFraction = { 0f, 0.1f, 0.2f };
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void Register()
+        {
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
+        }
+
+        private static void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode) => Apply();
+
         private static void Apply()
         {
             LevelDefinition level = Levels.Current;
@@ -20,41 +28,9 @@ namespace TowerDefense
             PathHolder path = Object.FindFirstObjectByType<PathHolder>();
             if (path == null || path.Waypoints == null || path.Waypoints.Length < 2) return;
 
-            switch (Mathf.Clamp(level.number, 1, 3))
-            {
-                case 2:
-                    MirrorPath(path);
-                    break;
-                case 3:
-                    MirrorPath(path);
-                    OffsetPath(path, new Vector3(0f, 2.5f, 0f));
-                    break;
-            }
-
+            // Keep the route aligned with the painted road until dedicated map art exists.
             PruneSlots(level);
             TintBackground(level);
-        }
-
-        // Карта 2/3: путь зеркалится по горизонтали относительно центра маршрута —
-        // враги идут с другой стороны, слоты покрывают маршрут иначе.
-        private static void MirrorPath(PathHolder path)
-        {
-            Transform[] waypoints = path.Waypoints;
-            Vector3 center = Vector3.zero;
-            foreach (Transform waypoint in waypoints) center += waypoint.position;
-            center /= waypoints.Length;
-            foreach (Transform waypoint in waypoints)
-            {
-                Vector3 position = waypoint.position;
-                position.x = 2f * center.x - position.x;
-                waypoint.position = position;
-            }
-        }
-
-        private static void OffsetPath(PathHolder path, Vector3 offset)
-        {
-            foreach (Transform waypoint in path.Waypoints)
-                waypoint.position += offset;
         }
 
         // Часть слотов закрыта: на картах 2–3 меньше позиций для строительства.
@@ -62,6 +38,10 @@ namespace TowerDefense
         {
             TowerSlot[] slots = Object.FindObjectsByType<TowerSlot>(FindObjectsSortMode.None);
             if (slots.Length == 0) return;
+            System.Array.Sort(slots, (a, b) => {
+                int x = a.transform.position.x.CompareTo(b.transform.position.x);
+                return x != 0 ? x : a.transform.position.y.CompareTo(b.transform.position.y);
+            });
             float fraction = SlotDisableFraction[Mathf.Clamp(level.number - 1, 0, SlotDisableFraction.Length - 1)];
             if (fraction <= 0f) return;
 

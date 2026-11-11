@@ -75,7 +75,7 @@ namespace TowerDefense
 
         // Coins for winning with 1, 2 or 3 stars.
         private static readonly int[] LevelRewards = { 30, 50, 80 };
-        private const int FirstUpgradeCost = 100;
+        private const int FirstUpgradeCost = 80;
 
         public static event Action OnChanged;
         public static event Action<LevelResult> OnLevelCompleted;
@@ -98,6 +98,11 @@ namespace TowerDefense
             // The starter tower is always owned.
             if (GetTowerLevel(TowerCatalog.StarterId) == 0)
                 AddBlueprints(TowerCatalog.StarterId, 1, false);
+            // Grant newly introduced campaign unlocks to existing players as well.
+            foreach (TowerDefinition tower in TowerCatalog.Towers)
+                if (tower.playable && tower.campaignLevel > 0 && tower.campaignLevel <= data.levelsCompleted
+                    && GetTowerLevel(tower.id) == 0)
+                    AddBlueprints(tower.id, 1, false);
             // Saves from before the deck existed take every tower they own into battle.
             if (data.deck.Count == 0)
                 foreach (TowerDefinition tower in TowerCatalog.Towers)
@@ -170,8 +175,8 @@ namespace TowerDefense
 
         public static bool IsMaxed(string upgradeId) => GetLevel(upgradeId) >= MaxUpgradeLevel;
 
-        // 100, 200, 400, 800, 1600.
-        public static int GetUpgradeCost(string upgradeId) => FirstUpgradeCost << GetLevel(upgradeId);
+        // 80, 140, 200, 260, 320 coins.
+        public static int GetUpgradeCost(string upgradeId) => FirstUpgradeCost + 60 * GetLevel(upgradeId);
 
         public static bool TryUpgrade(string upgradeId)
         {
@@ -339,9 +344,10 @@ namespace TowerDefense
         public static LevelResult CompleteLevel(int levelNumber, int lives, int maxLives, int leftoverMana)
         {
             LevelResult result = new LevelResult { stars = StarsFor(lives, maxLives) };
-            result.coins = Mathf.RoundToInt(LevelRewards[result.stars - 1] * Levels.RewardMultiplier);
+            result.coins = Mathf.RoundToInt((LevelRewards[result.stars - 1] + 40 * (levelNumber - 1)) * Levels.RewardMultiplier);
+            if (GetLevelStars(levelNumber) == 0) result.coins += 100 * levelNumber;
             result.leftoverMana = leftoverMana;
-            result.manaCoins = leftoverMana / ManaPerCoin;
+            result.manaCoins = Mathf.Clamp(leftoverMana / ManaPerCoin, 0, 30);
             Add(result.coins + result.manaCoins, 0, false);
 
             while (data.levelStars.Count < levelNumber) data.levelStars.Add(0);
@@ -352,7 +358,7 @@ namespace TowerDefense
                 data.levelsCompleted = levelNumber;
                 foreach (TowerDefinition tower in TowerCatalog.Towers)
                 {
-                    if (tower.campaignLevel != levelNumber) continue;
+                    if (tower.campaignLevel != levelNumber || !tower.playable) continue;
                     AddBlueprints(tower.id, 1, false);
                     result.campaignTower = tower;
                 }

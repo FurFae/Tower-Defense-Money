@@ -33,6 +33,8 @@ namespace TowerDefense
         // True while the pre-wave delay ticks and the wave can be called early for a mana bonus.
         public bool IsInDelay { get; private set; }
         public const int NextWaveBonus = 15;
+        public bool IsPreparing => IsInDelay && CurrentWaveNumber == 1;
+        public float DelayRemaining { get; private set; }
 
         public event Action<int, int> OnWaveChanged;
         public event Action OnAllWavesCleared;
@@ -58,17 +60,22 @@ namespace TowerDefense
         }
 
         // Splitting enemies raise this on death; copies join the current wave alive-count.
-        private void HandleSplitRequest(EnemyData splitInto, Vector3 position)
+        private void HandleSplitRequest(Enemy parent)
         {
-            if (IsGameOver || enemyPrefab == null || splitInto == null) return;
-            GameObject go = Instantiate(enemyPrefab, position, Quaternion.identity);
-            Enemy enemy = go.GetComponent<Enemy>();
-            enemy.Initialize(splitInto, path.Waypoints, healthMultiplier, position);
-            enemy.OnDeath += HandleEnemyRemoved;
-            enemy.OnReachedEnd += HandleEnemyRemoved;
-            aliveCount++;
+            if (IsGameOver || enemyPrefab == null || parent.Data.splitInto == null || path == null) return;
+            for (int i = 0; i < parent.Data.splitCount; i++)
+            {
+                EnemyData splitInto = parent.Data.splitInto;
+                Vector3 position = parent.transform.position;
+                GameObject go = Instantiate(enemyPrefab, position, Quaternion.identity);
+                Enemy enemy = go.GetComponent<Enemy>();
+                enemy.Initialize(splitInto, path.Waypoints, healthMultiplier, position);
+                enemy.ResumePath(parent.NextWaypointIndex, parent.DistanceTraveled);
+                enemy.OnDeath += HandleEnemyRemoved;
+                enemy.OnReachedEnd += HandleEnemyRemoved;
+                aliveCount++;
+            }
         }
-
         // Состав следующей волны для предпросмотра. Пока идёт задержка перед волной,
         // показываем эту волну; во время боя — следующую.
         public string DescribeNextWave()
@@ -81,10 +88,10 @@ namespace TowerDefense
             {
                 if (entry.enemy == null || entry.count <= 0) continue;
                 string name = entry.enemy.displayName;
-                string tag = entry.enemy.isBoss ? " <b>БОСС</b>" : entry.enemy.isFlying ? " (летит)" : "";
+                string tag = entry.enemy.isBoss ? " <b>БОСС</b>" : "";
                 parts.Add($"{name}{tag} ×{entry.count}");
             }
-            return parts.Count == 0 ? null : string.Join(", ", parts);
+            return parts.Count == 0 ? null : string.Join("   ·   ", parts);
         }
 
         // The scene holds the base waves; the level scales them and adds more at the end.
@@ -176,14 +183,15 @@ namespace TowerDefense
                 skipDelayRequested = false;
                 IsInDelay = true;
                 float timer = 0f;
-                while (timer < waves[i].delayBeforeWave && !skipDelayRequested)
+                while ((i == 0 || timer < waves[i].delayBeforeWave) && !skipDelayRequested)
                 {
                     if (IsGameOver) yield break;
+                    DelayRemaining = Mathf.Max(0f, waves[i].delayBeforeWave - timer);
                     timer += Time.deltaTime;
                     yield return null;
                 }
                 IsInDelay = false;
-                if (skipDelayRequested && !IsGameOver)
+                if (i > 0 && skipDelayRequested && !IsGameOver)
                 {
                     // Ранняя волна — небольшой бонус маны.
                     GameManager.Instance?.AddCurrency(NextWaveBonus);
@@ -241,6 +249,7 @@ namespace TowerDefense
 
         public void RequestSkipDelay()
         {
+            if (!IsInDelay || IsGameOver || (GameManager.Instance != null && GameManager.Instance.IsPaused)) return;
             skipDelayRequested = true;
         }
     }
