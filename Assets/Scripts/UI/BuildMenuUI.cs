@@ -32,6 +32,7 @@ namespace TowerDefense
         private RectTransform grid;
         private Text tooltipText;
         private GameObject tooltip;
+        private GameObject blocker;
         private RangeCircle rangeCircle;
         private bool built;
 
@@ -77,6 +78,7 @@ namespace TowerDefense
         }
 
         // The panel's old text buttons carry the only data->prefab mapping; harvest them.
+        // Only the deck (колода из 4 башен) is shown — everything else is hidden, not greyed out.
         private void EnsureBuilt()
         {
             if (built) return;
@@ -88,14 +90,29 @@ namespace TowerDefense
                 return;
             }
 
+            BuildBlocker();
+
             List<BuildOptionButton> oldButtons = new List<BuildOptionButton>(panel.GetComponentsInChildren<BuildOptionButton>(true));
             foreach (BuildOptionButton button in oldButtons)
             {
                 Option option = new Option { data = button.TowerData, prefab = button.TowerPrefab };
-                if (option.data != null && option.prefab != null) options.Add(option);
+                bool inDeck = option.data != null && MetaProgress.IsInDeck(option.data.name);
+                if (inDeck && option.prefab != null) options.Add(option);
                 Destroy(button.gameObject);
             }
             BuildGrid();
+        }
+
+        // Клик по любому пустому месту экрана закрывает меню (как у панели башни).
+        private void BuildBlocker()
+        {
+            Image catcher = RuntimeUI.CreateImage(panel.parent, "BuildMenuBlocker", new Color(0f, 0f, 0f, 0f));
+            catcher.raycastTarget = true;
+            RuntimeUI.Stretch(catcher.rectTransform);
+            catcher.gameObject.AddComponent<Button>().onClick.AddListener(Close);
+            blocker = catcher.gameObject;
+            blocker.transform.SetSiblingIndex(panel.GetSiblingIndex());
+            blocker.SetActive(false);
         }
 
         private void BuildGrid()
@@ -255,6 +272,9 @@ namespace TowerDefense
             panel.position = screenPos;
             KeepOnScreen();
             BattleUI.CloseTower();
+            blocker.transform.SetAsLastSibling();
+            panel.transform.SetAsLastSibling();
+            blocker.SetActive(true);
             panel.gameObject.SetActive(true);
             RefreshStates();
         }
@@ -274,6 +294,7 @@ namespace TowerDefense
         {
             currentSlot = null;
             if (panel != null) panel.gameObject.SetActive(false);
+            if (blocker != null) blocker.SetActive(false);
             HideTooltip();
             rangeCircle?.Hide();
         }
